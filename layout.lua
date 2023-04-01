@@ -3,14 +3,39 @@ gaps = 5
 main_ratio = 0.65
 current_layout = "main_and_stacked"
 
-local create_region
-
 cap = function(num, fun)
     return function(tab, args) 
         if not args.count or args.count > num then
             args.count = num
         end
         return fun(tab, args)
+    end
+end
+
+create_region = function(args, x, y, w_ratio, h_ratio, count)
+    if count then
+        if count < 0 then
+            count = args.count + count
+        end
+    else
+        count = args.count
+    end
+
+    local t = {}
+    x_off = args.x or 0
+    y_off = args.y or 0
+    t.x = (args.width - x_off) * x + x_off
+    t.y = (args.height - y_off) * y + y_off
+    t.width = math.floor(args.width * w_ratio)
+    t.height = math.floor(args.height * h_ratio)
+    t.count = count
+    t.tags = args.tags
+    t.output = args.output
+    return t
+end
+region = function(x, y, w_ratio, h_ratio, count)
+    return function(args)
+        return create_region(args, x, y, w_ratio, h_ratio, count)
     end
 end
 
@@ -32,52 +57,74 @@ sublayouts = {
 }
 
 layouts = {
-    main_and_stacked = function(args)
-        local ret = {}
-
-        if args.count == 1 then
-            return sublayouts.fill(ret, create_region(args, 0, 0, 1, 1))
-        end
-
-        local main_area = create_region(args, 0, 0, main_ratio, 1.0, 1)
-        ret = sublayouts.fill(ret, main_area)
-
-        local sub_area = create_region(args, main_area.width, 0, 1.0-main_ratio, 1.0, -1)
-        return sublayouts.rows(ret, sub_area)
-    end,
-    main_and_stacked_with_secondary = function(args)
-        local ret = {}
-
-        if args.count == 1 then
-            return sublayouts.fill(ret, create_region(args, 0, 0, 1, 1))
-        end
-
-        local main_area = create_region(args, 0, 0, main_ratio, 1.0, 1)
-        ret = sublayouts.fill(ret, main_area)
-
-        if args.count == 2 then
-            local sub_area = create_region(args, main_area.width, 0, 1.0-main_ratio, 1.0, -1)
-            ret = sublayouts.fill(ret, sub_area)
-            return ret
-        end
-
-        local sub_area = create_region(args, main_area.width, 0, 1.0-main_ratio, 0.6, 1)
-        ret = sublayouts.fill(ret, sub_area)
-        local subsub_area = create_region(args, main_area.width, sub_area.height, 1.0-main_ratio, 0.4, -2)
-        return sublayouts.rows(ret, subsub_area)
-    end,
-    monocle = function(args)
-        local ret = {}
-        return sublayouts.fill(ret, create_region(args, 0, 0, 1.0, 1.0))
-    end
+    main_and_stacked = {
+        {
+            area = region(0, 0, main_ratio, 1.0, 1),
+            remaining = region(main_ratio, 0, 1.0-main_ratio, 1.0),
+            max_count = 1,
+            sublayout = "fill",
+        },
+        {
+            area = region(0, 0, 1.0, 1.0, -1),
+            remaining = nil,
+            max_count = 0,
+            sublayout = "rows",
+        }
+    },
+    main_and_stacked_with_secondary = {
+        {
+            area = region(0, 0, main_ratio, 1.0, 1),
+            remaining = region(main_ratio, 0, 1-main_ratio, 1.0, -1),
+            max_count = 1,
+            sublayout = "fill",
+        },
+        {
+            area = region(0, 0, 1.0, 0.6, 1),
+            remaining = nil,
+            max_count = 0,
+            sublayout = "rows",
+        }
+    },
+    monocle = {
+        {
+            area = region(0, 0, 1.0, 1.0),
+            remaining = nil,
+            max_count = 0,
+            sublayout = "fill",
+        }
+    },
 }
 
 function apply_layout(args, layout)
-    return layouts[layout](args)
+    local count = 0
+    local ret = {}
+    local remaining = create_region(args, 0, 0, 1.0, 1.0)
+    for i, v in ipairs(layouts[layout]) do
+        if count + v.max_count == args.count and remaining ~= false then
+            ret = sublayouts[v.sublayout](ret, remaining)
+            return ret
+        end
+
+        ret = sublayouts[v.sublayout](ret, v.area(remaining))
+
+        if v.remaining then
+            remaining = v.remaining(remaining)
+        end
+        count = count + v.max_count
+
+        if count >= args.count or v.max_count == 0 then
+            return ret
+        end
+    end
+    return ret
 end
 
 function select_layout(layout)
     current_layout = layout
+end
+
+function set_ratio(rat)
+    main_ratio = rat
 end
 
 -- args:
@@ -94,27 +141,8 @@ end
 --  * height
 function handle_layout(args)
     print("Resolution: " .. args.width .. "x" .. args.height)
+    table.print(layouts.main_and_stacked)
     return apply_layout(args, current_layout)
-end
-
-create_region = function(args, x, y, w_ratio, h_ratio, count)
-    if count then
-        if count < 0 then
-            count = args.count + count
-        end
-    else
-        count = args.count
-    end
-
-    local t = {}
-    t.x = x
-    t.y = y
-    t.width = math.floor(args.width * w_ratio)
-    t.height = math.floor(args.height * h_ratio)
-    t.count = count
-    t.tags = args.tags
-    t.output = args.output
-    return t
 end
 
 table.copy = function(t)
@@ -130,13 +158,16 @@ table.copy = function(t)
 end
 table.print = function(t, indent)
     if not indent then indent = 0 end
-    print(string.rep(' ', indent) .. '{')
+    local pre = string.rep(' ', indent)
+    print(pre .. '{')
     for k, v in pairs(t) do
         if type(v) == 'table' then
             table.print(v, indent + 2)
+        elseif type(v) == 'function' then
+            print(pre .. '  ' .. k .. ' = ' .. tostring(v))
         else
-            print(string.rep(' ', indent) .. '  ' .. k .. ': ' .. v)
+            print(pre .. '  ' .. k .. ' = ' .. tostring(v))
         end
     end
-    print(string.rep(' ', indent) .. '}')
+    print(pre .. '}')
 end
