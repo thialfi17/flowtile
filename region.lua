@@ -8,7 +8,7 @@ local defaults = {
 }
 
 local Region = {
-    layout = "fill",
+    sublayout = "fill",
 }
 
 -- Create a new (empty!) region object
@@ -46,8 +46,8 @@ function Region:from(x_ratio, y_ratio, w_ratio, h_ratio)
     return new
 end
 
-function Region:set_layout(layout, count)
-    self.layout = layout
+function Region:set_layout(sublayout, count)
+    self.sublayout = sublayout
     self.count = count
     return self
 end
@@ -65,31 +65,36 @@ function Region:populate(count, wins)
     local remaining = count - handled_windows
 
     if self.children == nil then
-        return remaining, sublayouts[self.layout](wins, self, handled_windows)
+        return remaining, sublayouts[self.sublayout](wins, self, handled_windows)
     end
 
     -- Not enough windows to flow down into children
     -- TODO: Do I want to rethink how this works?
     if count < #self.children then
-        return 0, sublayouts[self.layout](wins, self, count)
+        return 0, sublayouts[self.sublayout](wins, self, count)
     end
 
-    -- Somehow now have to distribute windows between children
+    -- Distribute remaining windows between children
     local uncapped_children = {}
     for _, child in pairs(self.children) do
         if not child.count then
+            -- Queue regions that are uncapped for handling later
             table.insert(uncapped_children, child)
         else
+            -- If the region has a window cap populate it first
             count, wins = child:populate(count, wins)
         end
     end
 
+    -- Evenly split remaining windows between remaining regions
     local count_per_child = math.floor(count / #uncapped_children)
     local extra = math.fmod(count, #uncapped_children)
 
     for i, child in pairs(uncapped_children) do
-        if i == 1 then
-            count, wins = child:populate(count_per_child + extra, wins)
+        if i <= extra then
+            -- Fill some regions with extra children when there aren't an
+            -- evenly divisible number
+            count, wins = child:populate(count_per_child + 1, wins)
         else
             count, wins = child:populate(count_per_child, wins)
         end
@@ -123,7 +128,7 @@ function Region:print(indent)
     indent = indent or 0
     local pre = string.rep(' ', indent)
 
-    keys = {'x', 'y', 'width', 'height', 'layout', 'count'}
+    keys = {'x', 'y', 'width', 'height', 'sublayout', 'count'}
 
     print('Region (' .. tostring(self) .. ') {')
 

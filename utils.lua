@@ -24,7 +24,7 @@ M.table.print = function(t, indent, nest)
     print('{')
     for k, v in pairs(t) do
         if type(v) == 'table' and nest then
-            io.write(pre)
+            io.write(pre .. '  ' .. k .. " = " )
             M.table.print(v, indent + 2)
         else
             print(pre .. '  ' .. k .. ' = ' .. tostring(v) .. ',')

@@ -39,39 +39,25 @@ local M = {
     end,
 
     grid = function(tab, region, count)
-        local max_col = region.width / 16
-        local max_row = region.height / 9
-        local factor = 1.0
+        local factor = 16 / 9
         local closest_factor = nil
         local rows, cols
 
-        if max_col > max_row then
-            factor = max_col / max_row
-        else
-            factor = max_row / max_col
-        end
-
-        for x = 1, (1 + count/2)-1 do
+        for x = 1, (1 + count/2) do
             local y = math.ceil(count / x)
             local cur_factor
 
-            print("X and Y are: " .. x .. ", " .. y)
-
             if x * y == count + y then goto continue end
 
-            if max_col > max_row then
-                cur_factor = x / y
-            else
-                cur_factor = y / x
-            end
+            local width = region.width / x
+            local height = region.height / y
+            cur_factor = width / height
 
             local diff = math.abs(factor - cur_factor)
             if closest_factor == nil or diff < closest_factor then
                 if closest_factor ~= nil and (count < (x*y)-y or count < (x*y)-x) then
                     goto continue
                 end
-
-                print("Saving X and Y as: " .. x .. ", " .. y)
 
                 cols = x
                 rows = y

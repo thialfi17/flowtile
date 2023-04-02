@@ -1,22 +1,20 @@
-----------------------------------------
---            User Options            --
-----------------------------------------
-
-smart_gaps = true
-gaps = 5
-main_ratio = 0.70
-current_layout = "main_with_stack"
-
-----------------------------------------
---            Layout Code             --
-----------------------------------------
-
 config_dir = os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config"
 local_dir = config_dir .. "/river-luatile"
 package.path = local_dir .. "/?.lua;" .. package.path
 
+----------------------------------------
+--            User Options            --
+----------------------------------------
+
+config = require("config")
 layouts = require("layouts")
-utils = require("utils")
+
+config.outputs.layout = "main_with_stack"
+config.output["HDMI-A-1"].layout = "grid"
+
+----------------------------------------
+--            Layout Code             --
+----------------------------------------
 
 -- args:
 --  * tags: focused tags
@@ -31,14 +29,24 @@ utils = require("utils")
 --  * width
 --  * height
 function handle_layout(args)
-    return layouts[current_layout](args)
+    output = args.output
+    tag = args.tags
+    return layouts[config.output[output].tag[tag].layout](args)
 end
+
+----------------------------------------
+--        Change Runtime Stuff        --
+----------------------------------------
 
 function set_layout(layout)
-    current_layout = layout
+    config.output[output].tag[tag].layout = layout
 end
 
--- If there aren't enough windows to fill all of the children then fill the parent (optional?)
---   - what happens if there are three children but only one window? control this behaviour with an option?
--- Each region has a method of filling it
--- Each tag should have a hierarchy of regions
+--[[
+
+TODO: Document configuration and inheritance
+TODO: Add gaps/smart gaps
+TODO: Make use of options
+TODO: Add commands to set options
+
+--]]
