@@ -6,11 +6,12 @@ package.path = local_dir .. "/?.lua;" .. package.path
 --            User Options            --
 ----------------------------------------
 
-config = require("config")
-layouts = require("layouts")
+local config = require("config")
+local layouts = require("layouts")
 
-config.outputs.layout = "main_with_stack"
-config.output["HDMI-A-1"].layout = "grid"
+config.outputs.layout:set("main_with_stack")
+config.outputs.secondary_count:set(1)
+config.output["HDMI-A-1"].layout:set("grid")
 
 ----------------------------------------
 --            Layout Code             --
@@ -29,24 +30,43 @@ config.output["HDMI-A-1"].layout = "grid"
 --  * width
 --  * height
 function handle_layout(args)
-    output = args.output
-    tag = args.tags
-    return layouts[config.output[output].tag[tag].layout](args)
+    --print("Running and setting layout")
+    --local u = require("utils")
+    --print("Global:")
+    --u.table.print(config.outputs.secondary_count, 0, false)
+    --print("Local:")
+    --u.table.print(config.output[args.output].secondary_count, 0, false)
+
+    local config = config.output[args.output].tag[args.tags]
+    local wins = layouts[config.layout:get()](args, config)
+    return wins
 end
 
 ----------------------------------------
 --        Change Runtime Stuff        --
 ----------------------------------------
 
-function set_layout(layout)
-    config.output[output].tag[tag].layout = layout
+-- CMD_TAGS
+-- CMD_OUTPUT
+function set(var, val)
+    config.output[CMD_OUTPUT].tag[CMD_TAGS][var]:set(val)
+end
+
+function inc(var, val)
+    config.output[CMD_OUTPUT].tag[CMD_TAGS][var]:inc(val)
+end
+
+function debug()
+    local u = require("utils")
+    print("Output: " .. CMD_OUTPUT)
+    print("Tags: " .. CMD_TAGS)
+    u.table.print(config)
 end
 
 --[[
 
 TODO: Document configuration and inheritance
+TODO: Further consideration needed for inheritance rules for config
 TODO: Add gaps/smart gaps
-TODO: Make use of options
-TODO: Add commands to set options
 
 --]]

@@ -1,6 +1,6 @@
 local M = {
 
-    fill = function(tab, region, count)
+    fill = function(tab, region, count, config)
         for i = 1, count do
             table.insert(tab, {
                 region.x,
@@ -12,7 +12,7 @@ local M = {
         return tab
     end,
 
-    rows = function(tab, region, count)
+    rows = function(tab, region, count, config)
         local height = region.height / count
         for i = 0, count - 1 do
             table.insert(tab, {
@@ -25,7 +25,7 @@ local M = {
         return tab
     end,
 
-    cols = function(tab, region, count)
+    cols = function(tab, region, count, config)
         local width = region.width / count
         for i = 0, count - 1 do
             table.insert(tab, {
@@ -38,7 +38,7 @@ local M = {
         return tab
     end,
 
-    grid = function(tab, region, count)
+    grid = function(tab, region, count, config)
         local factor = 16 / 9
         local closest_factor = nil
         local rows, cols

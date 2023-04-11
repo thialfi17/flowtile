@@ -23,11 +23,16 @@ M.table.print = function(t, indent, nest)
     local pre = string.rep(' ', indent)
     print('{')
     for k, v in pairs(t) do
-        if type(v) == 'table' and nest then
-            io.write(pre .. '  ' .. k .. " = " )
-            M.table.print(v, indent + 2)
+        if type(v) == 'table' and nest and nest ~= 0 then
+            io.write(pre .. '  ' .. tostring(k) .. " = " )
+
+            if type(nest) == 'number' then
+                nest = nest - 1
+            end
+
+            M.table.print(v, indent + 2, nest)
         else
-            print(pre .. '  ' .. k .. ' = ' .. tostring(v) .. ',')
+            print(pre .. '  ' .. tostring(k) .. ' = ' .. tostring(v) .. ',')
         end
     end
     print(pre .. '},')

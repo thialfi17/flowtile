@@ -2,34 +2,92 @@ local Region = require("region")
 
 local layouts = {
 
-    monocle = function(args)
+    --[[
+
+    Layouts work by filling regions from top to bottom. A region only fills its
+    children if enough windows are present to give each child region at least 1
+    window. This means that no spaces are left empty by default.
+
+    For correct behaviour make sure that the limit for each region is set correctly.
+
+    --]]
+
+    monocle = function(args, config)
         local r = Region:from_args(args):set_layout("fill")
-        local _, wins = r:populate(args.count)
+        local _, wins = r:populate(args.count, config)
         return wins
     end,
 
-    grid = function(args)
+    grid = function(args, config)
         local r = Region:from_args(args):set_layout("grid")
-        local _, wins = r:populate(args.count)
+        local _, wins = r:populate(args.count, config)
         return wins
     end,
 
-    main_with_stack = function(args)
+    main_with_stack = function(args, config)
+        local main_ratio = config.main_ratio:get()
+        local secondary_count = config.secondary_count:get()
+
         local r = Region:from_args(args)
-        r:from(0, 0, 0.6, 1):set_layout("fill", 1)
-        local sub = r:from(0.6, 0, 0.4, 1):set_layout("fill")
-        sub:from(0, 0, 1, 0.6):set_layout("fill", 1)
-        sub:from(0, 0.6, 1, 0.4):set_layout("rows")
-        local _, wins = r:populate(args.count)
+
+        local main = r:from(0, 0, main_ratio, 1):set_layout("fill", 1)
+        local sub = r:from(main_ratio, 0, 1-main_ratio, 1):set_layout("fill")
+
+        local secondary = sub:from(0, 0, 1, 0.6):set_layout("rows", secondary_count)
+        local remaining = sub:from(0, 0.6, 1, 0.4):set_layout("rows")
+
+        local _, wins = r:populate(args.count, config)
         return wins
     end,
 
-    centred = function(args)
+    centred = function(args, config)
+        local main_ratio = config.main_ratio:get()
+
         local c = Region:from_args(args):set_layout("cols")
-        c:from(0.3, 0, 0.4, 1):set_layout("fill", 1)
-        c:from(0, 0, 0.3, 1):set_layout("rows")
-        c:from(0.7, 0, 0.3, 1):set_layout("rows")
-        local _, wins = c:populate(args.count)
+        c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", 1)
+        c:from(0, 0, 0.5 - main_ratio / 2, 1):set_layout("rows")
+        c:from(0.5 + main_ratio / 2, 0, 0.5 - main_ratio / 2, 1):set_layout("rows")
+
+        local _, wins = c:populate(args.count, config)
+        return wins
+    end,
+
+    centred2 = function(args, config)
+        local main_ratio = config.main_ratio:get()
+        local secondary_ratio = config.secondary_ratio:get()
+
+        local c = Region:from_args(args):set_layout("cols")
+
+        local main = c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", 1)
+
+        local left = c:from(0, 0, 0.5 - main_ratio / 2, 1):set_layout("rows")
+        local right = c:from(0.5 + main_ratio / 2, 0, 0.5 - main_ratio / 2, 1):set_layout("rows")
+
+        local left_top = left:from(0, 0, 1, secondary_ratio):set_layout("rows", secondary_count)
+        local left_btm = left:from(0, secondary_ratio, 1, 1 - secondary_ratio):set_layout("rows")
+
+        local right_top = right:from(0, 0, 1, secondary_ratio):set_layout("rows", secondary_count)
+        local right_btm = right:from(0, secondary_ratio, 1, 1 - secondary_ratio):set_layout("rows")
+
+        local _, wins = c:populate(args.count, config)
+        return wins
+    end,
+
+    centred2 = function(args, config)
+        local main_ratio = config.main_ratio:get()
+        local secondary_ratio = config.secondary_ratio:get()
+
+        local c = Region:from_args(args):set_layout("cols")
+
+        local main = c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", 1)
+
+        local left = c:from(0, 0, 0.5 - main_ratio / 2, 1):set_layout("rows", secondary_count + 2)
+        local right = c:from(0.5 + main_ratio / 2, 0, 0.5 - main_ratio / 2, 1):set_layout("rows"):fill_last()
+
+        local left_top = left:from(0, 0, 1, secondary_ratio):set_layout("rows", secondary_count)
+        local left_btm = left:from(0, secondary_ratio, 1, 1 - secondary_ratio):set_layout("rows",2)
+
+        local _, wins = c:populate(args.count, config)
         return wins
     end,
 }

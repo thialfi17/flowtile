@@ -1,24 +1,29 @@
 local utils = require("utils")
+local Option = require('option')
 
 ----------------------------------------
 --              Defaults              --
 ----------------------------------------
 
 local defaults = {
-    gaps = 5,
-    smart_gaps = false,
+    gaps = Option:new(5):limit(0),
+    smart_gaps = Option:new(false),
 
-    layout = "monocle",
+    layout = Option:new("monocle"),
 
-    main_ratio = 0.65,
-    secondary_ratio = 0.6,
+    main_ratio = Option:new(0.65):limit(0.1, 0.9),
+    secondary_ratio = Option:new(0.6):limit(0.1, 0.9),
+    secondary_count = Option:new(0):limit(0),
 }
 
 ----------------------------------------
---          Options Layout            --
+--           Config Layout            --
 ----------------------------------------
 
 local config = {
+    -- TODO: layouts
+    layouts = {},
+
     -- 'outputs' inheritance is simple: if option not set at the bottom level
     -- it searches upwards until it finds it set
     outputs = {
@@ -49,7 +54,9 @@ outputs_mt = {
     __index = function(t, k)
         local v = rawget(t, k)
         if v ~= nil then return v end
-        return defaults[k]
+
+        rawset(t, k, defaults[k]:clone())
+        return rawget(t, k)
     end
 }
 setmetatable(config.outputs, outputs_mt)
@@ -61,7 +68,8 @@ outputs_tags_mt = {
 
         if k == "tags" or k == "tag" then return nil end
         
-        return config.outputs[k]
+        rawset(t, k, config.outputs[k]:clone())
+        return rawget(t, k)
     end
 }
 setmetatable(config.outputs.tags, outputs_tags_mt)
@@ -71,7 +79,8 @@ outputs_tags_layouts_mt = {
         local v = rawget(t, k)
         if v ~= nil then return v end
         
-        return config.outputs.layouts[k]
+        rawset(t, k, config.outputs.layouts[k]:clone())
+        return rawget(t, k)
     end
 }
 setmetatable(config.outputs.tags.layouts, outputs_tags_layouts_mt)
@@ -86,7 +95,8 @@ outputs_tag_mt = {
             __index = function(tt, kk)
                 local vv = rawget(tt, kk)
                 if vv ~= nil then return vv end
-                return config.outputs.tags[kk]
+                rawset(tt, kk, config.outputs.tags[kk]:clone())
+                return rawget(tt, kk)
             end,
         }
         setmetatable(o, o_mt)
@@ -121,7 +131,8 @@ output_mt = {
                             -- option for global outputs
                             vvv = rawget(config.output[k], kkk)
                             if vvv ~= nil then return vvv end
-                            return config.outputs.tags[kkk]
+                            rawset(ttt, kkk, config.outputs.tags[kkk]:clone())
+                            return rawget(ttt, kkk)
                         end,
                     }
                     setmetatable(oo, oo_mt)
@@ -146,7 +157,8 @@ output_mt = {
                                     -- default option for this output
                                     vvvv = rawget(config.outputs.tag[kkk], kkkk)
                                     if vvvv ~= nil then return vvvv end
-                                    return config.output[k].tags[kkkk]
+                                    rawset(tttt, kkkk, config.output[k].tags[kkkk]:clone())
+                                    return rawget(tttt, kkkk)
                                 end,
                             }
                             setmetatable(ooo, ooo_mt)
@@ -159,7 +171,8 @@ output_mt = {
                     return oo
                 end
                 
-                return config.outputs[kk]
+                rawset(tt, kk, config.outputs[kk]:clone())
+                return rawget(tt, kk)
             end,
         }
         setmetatable(o, o_mt)

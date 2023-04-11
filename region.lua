@@ -1,8 +1,8 @@
 local utils = require('utils')
 
 local defaults = {
-    x= 0,
-    y= 0,
+    x = 0,
+    y = 0,
     width = 0,
     height = 0,
 }
@@ -52,7 +52,12 @@ function Region:set_layout(sublayout, count)
     return self
 end
 
-function Region:populate(count, wins)
+function Region:fill_last()
+    self.fill_last = true
+    return self
+end
+
+function Region:populate(count, config, wins)
     local wins = wins or {}
     local sublayouts = require('sublayouts')
 
@@ -65,40 +70,79 @@ function Region:populate(count, wins)
     local remaining = count - handled_windows
 
     if self.children == nil then
-        return remaining, sublayouts[self.sublayout](wins, self, handled_windows)
+        return remaining, sublayouts[self.sublayout](wins, self, handled_windows, config)
     end
 
     -- Not enough windows to flow down into children
-    -- TODO: Do I want to rethink how this works?
     if count < #self.children then
-        return 0, sublayouts[self.sublayout](wins, self, count)
+        return remaining, sublayouts[self.sublayout](wins, self, count, config)
     end
 
     -- Distribute remaining windows between children
-    local uncapped_children = {}
+    local fill_last = {}
+    local fill_by_count = {}
+    local fill_remaining = {}
+
+    local total = 0
+
     for _, child in pairs(self.children) do
-        if not child.count then
-            -- Queue regions that are uncapped for handling later
-            table.insert(uncapped_children, child)
+        if child.fill_last == true then
+            table.insert(fill_last, child)
         else
-            -- If the region has a window cap populate it first
-            count, wins = child:populate(count, wins)
+            if child.count and child.count ~= 0 then
+                table.insert(fill_by_count, child)
+            end
+            if child.count == nil then
+                table.insert(fill_remaining, child)
+            end
+            total = total + 1
         end
     end
+
+    local fill_from_list = function(tab, total)
+        if total == 0 then return total end
+        local fill_with = math.floor(count / total)
+        local extra = math.fmod(count, total)
+
+        for i, child in pairs(tab) do
+            if i <= extra then
+                remaining, wins = child:populate(fill_with + 1, config, wins)
+                count = count - (fill_with + 1 - remaining)
+            else
+                remaining, wins = child:populate(fill_with, config, wins)
+                count = count - (fill_with - remaining)
+            end
+            total = total - 1
+        end
+
+        return total
+    end
+
+    count = count - #fill_last
+
+    local fill_with = 1
+    while total ~= 0 and (fill_with * total < count) do
+        local remove = {}
+        for i, child in pairs(fill_by_count) do
+            if fill_with >= child.count then
+                remaining, wins = child:populate(fill_with, config, wins)
+                count = count - (fill_with - remaining)
+                total = total - 1
+                table.insert(remove, 1, i)
+            end
+        end
+        for _, i in pairs(remove) do table.remove(fill_by_count, i) end
+        fill_with = fill_with + 1
+    end
+
+    -- TODO: Go back to treating fill_by_count as a dict not an array
+    total = fill_from_list(fill_by_count, total)
+    total = fill_from_list(fill_remaining, total)
+
+    count = count + #fill_last
 
     -- Evenly split remaining windows between remaining regions
-    local count_per_child = math.floor(count / #uncapped_children)
-    local extra = math.fmod(count, #uncapped_children)
-
-    for i, child in pairs(uncapped_children) do
-        if i <= extra then
-            -- Fill some regions with extra children when there aren't an
-            -- evenly divisible number
-            count, wins = child:populate(count_per_child + 1, wins)
-        else
-            count, wins = child:populate(count_per_child, wins)
-        end
-    end
+    fill_from_list(fill_last, #fill_last)
 
     return count, wins
 end
@@ -147,6 +191,9 @@ function Region:print(indent)
         print(pre .. '  },')
     end
     print(pre .. '}')
+end
+
+function Region:validate()
 end
 
 return Region
