@@ -25,8 +25,8 @@ local layouts = {
     end,
 
     main_with_stack = function(args, config)
-        local main_ratio = config.main_ratio:get()
-        local secondary_count = config.secondary_count:get()
+        local main_ratio = config.main_ratio
+        local secondary_count = config.secondary_count
 
         local r = Region:from_args(args)
 
@@ -41,7 +41,7 @@ local layouts = {
     end,
 
     centred = function(args, config)
-        local main_ratio = config.main_ratio:get()
+        local main_ratio = config.main_ratio
 
         local c = Region:from_args(args):set_layout("cols")
         c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", 1)
@@ -53,8 +53,8 @@ local layouts = {
     end,
 
     centred2 = function(args, config)
-        local main_ratio = config.main_ratio:get()
-        local secondary_ratio = config.secondary_ratio:get()
+        local main_ratio = config.main_ratio
+        local secondary_ratio = config.secondary_ratio
 
         local c = Region:from_args(args):set_layout("cols")
 
@@ -74,8 +74,9 @@ local layouts = {
     end,
 
     centred2 = function(args, config)
-        local main_ratio = config.main_ratio:get()
-        local secondary_ratio = config.secondary_ratio:get()
+        local main_ratio = config.main_ratio
+        local secondary_ratio = config.secondary_ratio
+        local secondary_count = config.secondary_count
 
         local c = Region:from_args(args):set_layout("cols")
 

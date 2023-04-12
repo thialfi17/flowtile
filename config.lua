@@ -1,43 +1,8 @@
 local utils = require("utils")
-local Option = require('option')
-
-----------------------------------------
---              Defaults              --
-----------------------------------------
-
-local defaults = {
-    default = Option:new("test"),
-    --gaps = Option:new(5):limit(0),
-    --smart_gaps = Option:new(false),
-
-    --layout = Option:new("monocle"),
-
-    --main_ratio = Option:new(0.65):limit(0.1, 0.9),
-    --secondary_ratio = Option:new(0.6):limit(0.1, 0.9),
-    --secondary_count = Option:new(0):limit(0),
-}
 
 ----------------------------------------
 --           Config Layout            --
 ----------------------------------------
-
---[[
-local config = {
-    -- 'outputs' inheritance is simple: if option not set at the bottom level
-    -- it searches upwards until it finds it set
-    outputs = {
-        tags = {
-            layouts = {},
-        },
-        tag = {},
-    },
-    -- 'output' inheritance is complicated: if option is not set then try and
-    -- look for most specific option. E.g. if output['HDMI-A-1'].tags.layout =
-    -- 'grid' and outputs.tag[1].layout = 'monocle' then monocle layout will
-    -- get applied. Order of inheritance may need reconsidering
-    output = {},
-}
---]]
 
 local config = {}
 
@@ -46,34 +11,125 @@ local config = {}
 ----------------------------------------
 
 -- This is a table which directly inherits its keys from one or more tables. It prioritizes the ACTUAL keys from the earliest table and then will get the inherited key from the last table.
-local GroupTable = {}
-local _GroupTable = {}
-setmetatable(GroupTable, GroupTable)
 
-function GroupTable.__index(t, k)
-    local v
+OptionGroup = {}
+_Option_vals = {}
+_Option_meta = {}
+_Option_hier = {}
 
-    if _GroupTable[t] == nil then return nil end
+local function get_parent_meta(opt, key)
+    local last_parent = nil
+    local parents = _Option_hier[opt]
 
-    local last = nil
-    for i, p in ipairs(_GroupTable[t]) do
-        last = rawget(p, k)
-        if last ~= nil then
-            rawset(t, k, last:clone())
-            return rawget(t, k)
-        else
-            last = p[k]
-        end
+    if parents == nil then
+        return nil
     end
 
-    return last
+    for _, parent in ipairs(parents) do
+        local meta = _Option_meta[parent][key]
+        if meta ~= nil then
+            return meta
+        end
+        last_parent = parent
+    end
+
+    return get_parent_meta(last_parent, key)
 end
 
-function GroupTable.new(parents)
+function OptionGroup:new(parents)
     local o = {}
-    setmetatable(o, GroupTable)
-    _GroupTable[o] = parents
+    setmetatable(o, self)
+    _Option_vals[o] = {}
+    _Option_meta[o] = {}
+    _Option_hier[o] = parents
     return o
+end
+
+function OptionGroup.__index(t, k)
+    --print("Accessing: " .. tostring(k))
+    if OptionGroup[k] ~= nil then return OptionGroup[k] end
+
+    if _Option_vals[t][k] ~= nil then
+        return _Option_vals[t][k]
+    elseif _Option_hier[t] ~= nil then
+        local last = nil
+        for i, parent in ipairs(_Option_hier[t]) do
+            --local v = parent[k] -- This will continue to inherit which we need to be able to block
+            local v = _Option_vals[parent][k] -- rawget equivalent
+            if v ~= nil then
+                return v
+            end
+            last = parent[k]
+            --print(last)
+        end
+        return last
+    end
+    return nil
+end
+
+function validate(meta, v)
+    if type(v) ~= meta.type then
+        print("Incorrect type! Ignoring...")
+        return nil
+    end
+    if meta.type == "number" then
+        if meta.min ~= nil and v < meta.min then
+            return meta.min
+        elseif meta.max ~= nil and v > meta.max then
+            return meta.max
+        else
+            return v
+        end
+    end
+    return v
+end
+
+function OptionGroup.__newindex(t, k, v)
+    --print("Setting: " .. tostring(k) .. " to " .. tostring(v))
+    local meta = _Option_meta[t][k]
+
+    if meta ~= nil then
+        v = validate(meta, v)
+
+        if v == nil then
+            return
+        end
+
+    elseif _Option_hier[t] ~= nil then
+        meta = get_parent_meta(t, k)
+
+        if meta ~= nil then
+            v = validate(meta, v)
+
+            if v == nil then
+                return
+            end
+        end
+    end
+    _Option_meta[t][k] = meta or {type = type(v)}
+    _Option_vals[t][k] = v
+end
+
+function OptionGroup:print()
+    require("utils").table.print(_Option_vals[self])
+end
+
+function OptionGroup:iter()
+    return next, _Option_vals[self], nil
+end
+
+function OptionGroup:limit(var, min, max)
+    local meta = _Option_meta[self][var]
+    if meta ~= nil then
+        meta.min = min
+        meta.max = max
+    else
+        _Option_meta[self][var] = {
+            min = min,
+            max = max,
+            type = "number",
+        }
+    end
 end
 
 -- This is a table which is designed to inherit from TWO sources. It inherits from a general table e.g. outputs/tags and also a specific table e.g. output[1]. It will take the actual result from the generic table first and then actual or inherited results from the specific table after
@@ -82,14 +138,10 @@ local _MixedTable = {}
 setmetatable(MixedTable, MixedTable)
 
 function MixedTable.__index(t, k)
-    local v
+    local v = OptionGroup:new({_MixedTable[t][1], _MixedTable[t][2][k]})
 
-    -- Needs to be a group table with the first inheritor being the tags from the outputs and the second being the individual table from the tag in outputs
-
-    v = GroupTable.new({_MixedTable[t][1], _MixedTable[t][2][k]})
-
-    rawset(t, k, v)
-    return rawget(t, k)
+    t[k] = v
+    return t[k]
 end
 
 function MixedTable.new(parents)
@@ -105,25 +157,27 @@ local _IndividualTable = {}
 setmetatable(IndividualTable, IndividualTable)
 
 function IndividualTable.__index(t, k)
-    local v
-    v = GroupTable.new(_IndividualTable[t])
-    rawset(t, k, v)
+    local v = OptionGroup:new(_IndividualTable[t])
+    t[k] = v
 
     for _, t2 in ipairs(_IndividualTable[t]) do
         local plurals = {}
-        for key, val in pairs(t2) do
-            if _GroupTable[val] ~= nil then
-                rawset(v, key, GroupTable.new({val}))
+        for key, val in t2:iter() do
+            --print("KEY: " .. key)
+            if _Option_vals[val] ~= nil then
+                --print("TAGS: " .. key)
+                v[key] = OptionGroup:new({val})
             elseif _IndividualTable[val] ~= nil then
+                --print("TAG: " .. key)
                 table.insert(plurals, {key, val})
             end
         end
         for _, tab in ipairs(plurals) do
-            rawset(v, tab[1], MixedTable.new({rawget(v, tab[1] .. "s"), tab[2]}))
+            v[tab[1]] = MixedTable.new({v[tab[1] .. "s"], tab[2]})
         end
     end
 
-    return rawget(t, k)
+    return t[k]
 end
 
 function IndividualTable.new(parents)
@@ -133,9 +187,9 @@ function IndividualTable.new(parents)
     return o
 end
 
-config.outputs = {}
-config.outputs.tags = GroupTable.new({defaults})
-config.outputs.tags.layouts = GroupTable.new({{}})
+config.outputs = OptionGroup:new()
+config.outputs.tags = OptionGroup:new({config.outputs})
+config.outputs.tags.layouts = OptionGroup:new()
 config.outputs.tag = IndividualTable.new({config.outputs.tags})
 
 config.output = IndividualTable.new({config.outputs})

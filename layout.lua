@@ -1,17 +1,27 @@
+
+----------------------------------------
+--           Module Loading           --
+----------------------------------------
+
+-- Setup path to lua modules
 config_dir = os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config"
 local_dir = config_dir .. "/river-luatile"
 package.path = local_dir .. "/?.lua;" .. package.path
+
+-- Globals so that they are accessible through the "run" function below
+config = require("config")
+layouts = require("layouts")
 
 ----------------------------------------
 --            User Options            --
 ----------------------------------------
 
-local config = require("config")
-local layouts = require("layouts")
-
-config.outputs.layout:set("main_with_stack")
-config.outputs.secondary_count:set(1)
-config.output["HDMI-A-1"].layout:set("grid")
+config.outputs.layout = "main_with_stack"
+config.outputs:limit("secondary_count", 0, nil)
+config.outputs.secondary_count = 1
+config.outputs.main_ratio = 0.6
+config.outputs.secondary_ratio = 0.6
+config.output["HDMI-A-1"].tags.layout = "grid"
 
 ----------------------------------------
 --            Layout Code             --
@@ -38,7 +48,7 @@ function handle_layout(args)
     --u.table.print(config.output[args.output].secondary_count, 0, false)
 
     local config = config.output[args.output].tag[args.tags]
-    local wins = layouts[config.layout:get()](args, config)
+    local wins = layouts[config.layout](args, config)
     return wins
 end
 
@@ -49,11 +59,21 @@ end
 -- CMD_TAGS
 -- CMD_OUTPUT
 function set(var, val)
-    config.output[CMD_OUTPUT].tag[CMD_TAGS][var]:set(val)
+    config.output[CMD_OUTPUT].tag[CMD_TAGS][var] = val
 end
 
 function inc(var, val)
-    config.output[CMD_OUTPUT].tag[CMD_TAGS][var]:inc(val)
+    config.output[CMD_OUTPUT].tag[CMD_TAGS][var] = val + config.output[CMD_OUTPUT].tag[CMD_TAGS][var]
+end
+
+-- Execute arbitrary lua code on the running system. This can be useful for debugging or for live editing of things that weren't intended to be changed
+function run(str)
+    local v = load(str)
+    if v ~= nil then
+        v()
+    else
+        print("Code was invalid!")
+    end
 end
 
 function debug()
@@ -68,5 +88,7 @@ end
 TODO: Document configuration and inheritance
 TODO: Further consideration needed for inheritance rules for config
 TODO: Add gaps/smart gaps
+TODO: Layout specific options that can also be set per output/tag
+TODO: Redo the configuration table setup to make it cleaner and easier to extend
 
 --]]
