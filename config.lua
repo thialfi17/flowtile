@@ -6,28 +6,26 @@ local Option = require('option')
 ----------------------------------------
 
 local defaults = {
-    gaps = Option:new(5):limit(0),
-    smart_gaps = Option:new(false),
+    default = Option:new("test"),
+    --gaps = Option:new(5):limit(0),
+    --smart_gaps = Option:new(false),
 
-    layout = Option:new("monocle"),
+    --layout = Option:new("monocle"),
 
-    main_ratio = Option:new(0.65):limit(0.1, 0.9),
-    secondary_ratio = Option:new(0.6):limit(0.1, 0.9),
-    secondary_count = Option:new(0):limit(0),
+    --main_ratio = Option:new(0.65):limit(0.1, 0.9),
+    --secondary_ratio = Option:new(0.6):limit(0.1, 0.9),
+    --secondary_count = Option:new(0):limit(0),
 }
 
 ----------------------------------------
 --           Config Layout            --
 ----------------------------------------
 
+--[[
 local config = {
-    -- TODO: layouts
-    layouts = {},
-
     -- 'outputs' inheritance is simple: if option not set at the bottom level
     -- it searches upwards until it finds it set
     outputs = {
-        layouts = {},
         tags = {
             layouts = {},
         },
@@ -39,148 +37,107 @@ local config = {
     -- get applied. Order of inheritance may need reconsidering
     output = {},
 }
+--]]
+
+local config = {}
 
 ----------------------------------------
 --          Implementation            --
 ----------------------------------------
 
---
--- I would strongly recommend not scrolling further... I tried a
--- smarter/prettier solution but got stuck so hard coded all of the
--- inheritance...
---
+-- This is a table which directly inherits its keys from one or more tables. It prioritizes the ACTUAL keys from the earliest table and then will get the inherited key from the last table.
+local GroupTable = {}
+local _GroupTable = {}
+setmetatable(GroupTable, GroupTable)
 
-outputs_mt = {
-    __index = function(t, k)
-        local v = rawget(t, k)
-        if v ~= nil then return v end
+function GroupTable.__index(t, k)
+    local v
 
-        rawset(t, k, defaults[k]:clone())
-        return rawget(t, k)
+    if _GroupTable[t] == nil then return nil end
+
+    local last = nil
+    for i, p in ipairs(_GroupTable[t]) do
+        last = rawget(p, k)
+        if last ~= nil then
+            rawset(t, k, last:clone())
+            return rawget(t, k)
+        else
+            last = p[k]
+        end
     end
-}
-setmetatable(config.outputs, outputs_mt)
 
-outputs_tags_mt = {
-    __index = function(t, k)
-        local v = rawget(t, k)
-        if v ~= nil then return v end
+    return last
+end
 
-        if k == "tags" or k == "tag" then return nil end
-        
-        rawset(t, k, config.outputs[k]:clone())
-        return rawget(t, k)
+function GroupTable.new(parents)
+    local o = {}
+    setmetatable(o, GroupTable)
+    _GroupTable[o] = parents
+    return o
+end
+
+-- This is a table which is designed to inherit from TWO sources. It inherits from a general table e.g. outputs/tags and also a specific table e.g. output[1]. It will take the actual result from the generic table first and then actual or inherited results from the specific table after
+local MixedTable = {}
+local _MixedTable = {}
+setmetatable(MixedTable, MixedTable)
+
+function MixedTable.__index(t, k)
+    local v
+
+    -- Needs to be a group table with the first inheritor being the tags from the outputs and the second being the individual table from the tag in outputs
+
+    v = GroupTable.new({_MixedTable[t][1], _MixedTable[t][2][k]})
+
+    rawset(t, k, v)
+    return rawget(t, k)
+end
+
+function MixedTable.new(parents)
+    local o = {}
+    setmetatable(o, MixedTable)
+    _MixedTable[o] = parents
+    return o
+end
+
+-- This table generates individual tables for specific tags/outputs from the generic tables. It will also setup inheritance for any children that have both specific and generic versions as well since their layout cannot be determined
+local IndividualTable = {}
+local _IndividualTable = {}
+setmetatable(IndividualTable, IndividualTable)
+
+function IndividualTable.__index(t, k)
+    local v
+    v = GroupTable.new(_IndividualTable[t])
+    rawset(t, k, v)
+
+    for _, t2 in ipairs(_IndividualTable[t]) do
+        local plurals = {}
+        for key, val in pairs(t2) do
+            if _GroupTable[val] ~= nil then
+                rawset(v, key, GroupTable.new({val}))
+            elseif _IndividualTable[val] ~= nil then
+                table.insert(plurals, {key, val})
+            end
+        end
+        for _, tab in ipairs(plurals) do
+            rawset(v, tab[1], MixedTable.new({rawget(v, tab[1] .. "s"), tab[2]}))
+        end
     end
-}
-setmetatable(config.outputs.tags, outputs_tags_mt)
 
-outputs_tags_layouts_mt = {
-    __index = function(t, k)
-        local v = rawget(t, k)
-        if v ~= nil then return v end
-        
-        rawset(t, k, config.outputs.layouts[k]:clone())
-        return rawget(t, k)
-    end
-}
-setmetatable(config.outputs.tags.layouts, outputs_tags_layouts_mt)
+    return rawget(t, k)
+end
 
-outputs_tag_mt = {
-    __index = function(t, k)
-        local v = rawget(t, k)
-        if v ~= nil then return v end
+function IndividualTable.new(parents)
+    local o = {}
+    setmetatable(o, IndividualTable)
+    _IndividualTable[o] = parents
+    return o
+end
 
-        local o = {}
-        local o_mt = {
-            __index = function(tt, kk)
-                local vv = rawget(tt, kk)
-                if vv ~= nil then return vv end
-                rawset(tt, kk, config.outputs.tags[kk]:clone())
-                return rawget(tt, kk)
-            end,
-        }
-        setmetatable(o, o_mt)
+config.outputs = {}
+config.outputs.tags = GroupTable.new({defaults})
+config.outputs.tags.layouts = GroupTable.new({{}})
+config.outputs.tag = IndividualTable.new({config.outputs.tags})
 
-        t[k] = o
-        return o
-    end,
-}
-setmetatable(config.outputs.tag, outputs_tag_mt)
-
-output_mt = {
-    __index = function(t, k)
-        local v = rawget(t, k)
-        if v ~= nil then return v end
-
-        local o = {}
-        local o_mt = {
-            __index = function(tt, kk)
-                local vv = rawget(tt, kk)
-                if vv ~= nil then return vv end
-
-                -- Special handling for 'tags' field of output
-                if kk == "tags" then
-                    local oo = {}
-                    local oo_mt = {
-                        __index = function(ttt, kkk)
-                            local vvv = rawget(ttt, kkk)
-                            if vvv ~= nil then return vvv end
-
-                            -- If specific 'tags' entry doesn't exist see if we
-                            -- have an output specific override. If not get the
-                            -- option for global outputs
-                            vvv = rawget(config.output[k], kkk)
-                            if vvv ~= nil then return vvv end
-                            rawset(ttt, kkk, config.outputs.tags[kkk]:clone())
-                            return rawget(ttt, kkk)
-                        end,
-                    }
-                    setmetatable(oo, oo_mt)
-                    tt[kk] = oo
-                    return oo
-                -- Special handling for 'tag' field of output
-                elseif kk == "tag" then
-                    local oo = {}
-                    local oo_mt = {
-                        __index = function(ttt, kkk)
-                            local vvv = rawget(ttt, kkk)
-                            if vvv ~= nil then return vvv end
-
-                            local ooo = {}
-                            local ooo_mt = {
-                                __index = function(tttt, kkkk)
-                                    local vvvv = rawget(tttt, kkkk)
-                                    if vvvv ~= nil then return vvvv end
-
-                                    -- If specific 'tag' entry doesn't exist see if we
-                                    -- have a tag specific global override. If not get the
-                                    -- default option for this output
-                                    vvvv = rawget(config.outputs.tag[kkk], kkkk)
-                                    if vvvv ~= nil then return vvvv end
-                                    rawset(tttt, kkkk, config.output[k].tags[kkkk]:clone())
-                                    return rawget(tttt, kkkk)
-                                end,
-                            }
-                            setmetatable(ooo, ooo_mt)
-                            ttt[kkk] = ooo
-                            return ooo
-                        end,
-                    }
-                    setmetatable(oo, oo_mt)
-                    tt[kk] = oo
-                    return oo
-                end
-                
-                rawset(tt, kk, config.outputs[kk]:clone())
-                return rawget(tt, kk)
-            end,
-        }
-        setmetatable(o, o_mt)
-
-        t[k] = o
-        return o
-    end,
-}
-setmetatable(config.output, output_mt)
+config.output = IndividualTable.new({config.outputs})
 
 return config
