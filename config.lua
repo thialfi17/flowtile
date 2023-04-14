@@ -10,7 +10,9 @@ local config = {}
 --          Implementation            --
 ----------------------------------------
 
--- This is a table which directly inherits its keys from one or more tables. It prioritizes the ACTUAL keys from the earliest table and then will get the inherited key from the last table.
+-- This is a table which directly inherits its keys from one or more tables. It
+-- prioritizes the ACTUAL keys from the earliest table and then will get the
+-- inherited key from the last table.
 
 OptionGroup = {}
 _Option_vals = {}
@@ -54,20 +56,18 @@ function OptionGroup.__index(t, k)
     elseif _Option_hier[t] ~= nil then
         local last = nil
         for i, parent in ipairs(_Option_hier[t]) do
-            --local v = parent[k] -- This will continue to inherit which we need to be able to block
             local v = _Option_vals[parent][k] -- rawget equivalent
             if v ~= nil then
                 return v
             end
             last = parent[k]
-            --print(last)
         end
         return last
     end
     return nil
 end
 
-function validate(meta, v)
+local function validate(meta, v)
     if type(v) ~= meta.type then
         print("Incorrect type! Ignoring...")
         return nil
@@ -112,6 +112,7 @@ end
 
 function OptionGroup:print()
     require("utils").table.print(_Option_vals[self])
+    require("utils").table.print(_Option_meta[self])
 end
 
 function OptionGroup:iter()
@@ -132,7 +133,10 @@ function OptionGroup:limit(var, min, max)
     end
 end
 
--- This is a table which is designed to inherit from TWO sources. It inherits from a general table e.g. outputs/tags and also a specific table e.g. output[1]. It will take the actual result from the generic table first and then actual or inherited results from the specific table after
+-- This is a table which is designed to inherit from TWO sources. It inherits
+-- from a general table e.g. outputs/tags and also a specific table e.g.
+-- output[1]. It will take the actual result from the generic table first and
+-- then actual or inherited results from the specific table after
 local MixedTable = {}
 local _MixedTable = {}
 setmetatable(MixedTable, MixedTable)
@@ -151,7 +155,10 @@ function MixedTable.new(parents)
     return o
 end
 
--- This table generates individual tables for specific tags/outputs from the generic tables. It will also setup inheritance for any children that have both specific and generic versions as well since their layout cannot be determined
+-- This table generates individual tables for specific tags/outputs from the
+-- generic tables. It will also setup inheritance for any children that have
+-- both specific and generic versions as well since their layout cannot be
+-- determined
 local IndividualTable = {}
 local _IndividualTable = {}
 setmetatable(IndividualTable, IndividualTable)
@@ -187,11 +194,83 @@ function IndividualTable.new(parents)
     return o
 end
 
+
+
 config.outputs = OptionGroup:new()
 config.outputs.tags = OptionGroup:new({config.outputs})
-config.outputs.tags.layouts = OptionGroup:new()
+config.outputs.tags.layouts = OptionGroup:new({config.outputs.tags})
 config.outputs.tag = IndividualTable.new({config.outputs.tags})
 
 config.output = IndividualTable.new({config.outputs})
+
+
+
+config.lim = function(var, min, max)
+    config.outputs:limit(var, min, max)
+end
+
+config.set = function(args, lim)
+    local out = args[1]
+    local tag = args[2]
+    local var = args[3]
+    local val = args[4]
+
+    if var == nil or type(var) ~= "string" then
+        error("Invalid variable name!")
+    end
+
+    if lim ~= nil then
+        config.lim(var, lim[1], lim[2])
+    end
+
+    if out == nil then
+        if tag == nil then
+            config.outputs.tags[var] = val
+        else
+            config.outputs.tag[tag][var] = val
+        end
+    else
+        if tag == nil then
+            config.output[out].tags[var] = val
+        else
+            config.output[out].tag[tag][var] = val
+        end
+    end
+end
+
+config.inc = function(args)
+    local val = config.get(args)
+
+    args[4] = args[4] + val
+
+    config.set(args)    
+end
+
+config.get = function(args)
+    local out = args[1]
+    local tag = args[2]
+    local var = args[3]
+
+    if out == nil then
+        if tag == nil then
+            return config.outputs.tags[var]
+        else
+            return config.outputs.tag[tag][var]
+        end
+    else
+        if tag == nil then
+            return config.output[out].tags[var]
+        else
+            return config.output[out].tag[tag][var]
+        end
+    end
+end
+
+-- Not currently used but in consideration for use in the layouts
+config.pget = function(output, tag)
+    return function(var)
+        return config.get(output, tag, var)
+    end
+end
 
 return config

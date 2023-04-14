@@ -8,7 +8,7 @@ config_dir = os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config"
 local_dir = config_dir .. "/river-luatile"
 package.path = local_dir .. "/?.lua;" .. package.path
 
--- Globals so that they are accessible through the "run" function below
+-- Global to make them accessible through the "run" function
 config = require("config")
 layouts = require("layouts")
 
@@ -16,12 +16,18 @@ layouts = require("layouts")
 --            User Options            --
 ----------------------------------------
 
+--[[
+
+    Reserved option names are: print, limit, iter, and new
+
+--]]
+
+config.set({nil, nil, "secondary_count", 1  }, {0,   nil})
+config.set({nil, nil, "main_ratio",      0.6}, {0.1, 0.9})
+config.set({nil, nil, "secondary_ratio", 0.6}, {0.1, 0.9})
+
 config.outputs.layout = "main_with_stack"
-config.outputs:limit("secondary_count", 0, nil)
-config.outputs.secondary_count = 1
-config.outputs.main_ratio = 0.6
-config.outputs.secondary_ratio = 0.6
-config.output["HDMI-A-1"].tags.layout = "grid"
+--config.output["HDMI-A-1"].tags.layout = "grid"
 
 ----------------------------------------
 --            Layout Code             --
@@ -40,13 +46,6 @@ config.output["HDMI-A-1"].tags.layout = "grid"
 --  * width
 --  * height
 function handle_layout(args)
-    --print("Running and setting layout")
-    --local u = require("utils")
-    --print("Global:")
-    --u.table.print(config.outputs.secondary_count, 0, false)
-    --print("Local:")
-    --u.table.print(config.output[args.output].secondary_count, 0, false)
-
     local config = config.output[args.output].tag[args.tags]
     local wins = layouts[config.layout](args, config)
     return wins
@@ -56,17 +55,24 @@ end
 --        Change Runtime Stuff        --
 ----------------------------------------
 
--- CMD_TAGS
--- CMD_OUTPUT
+--[[
+
+    These functions are all callable as a layout command. When a layout
+    command is called the global variables CMD_OUTPUT and CMD_TAGS are set
+    to the current output and the current tag respectively.
+
+--]]
+
 function set(var, val)
-    config.output[CMD_OUTPUT].tag[CMD_TAGS][var] = val
+    config.set({CMD_OUTPUT, CMD_TAGS, var, val})
 end
 
 function inc(var, val)
-    config.output[CMD_OUTPUT].tag[CMD_TAGS][var] = val + config.output[CMD_OUTPUT].tag[CMD_TAGS][var]
+    config.inc({CMD_OUTPUT, CMD_TAGS, var, val})
 end
 
--- Execute arbitrary lua code on the running system. This can be useful for debugging or for live editing of things that weren't intended to be changed
+-- Execute arbitrary lua code on the running system. This can be useful for
+-- debugging or for live editing of things that weren't intended to be changed
 function run(str)
     local v = load(str)
     if v ~= nil then
