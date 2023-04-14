@@ -92,19 +92,13 @@ function run(str)
     end
 end
 
-function debug()
-    local u = require("utils")
-    print("Output: " .. CMD_OUTPUT)
-    print("Tags: " .. CMD_TAGS)
-    u.table.print(config)
-end
-
 --[[
 
-TODO: Document configuration and inheritance
-TODO: Further consideration needed for inheritance rules for config
-TODO: Add gaps/smart gaps
+TODO: Documentation!
 TODO: Layout specific options that can also be set per output/tag
-TODO: Redo the configuration table setup to make it cleaner and easier to extend
+TODO: Region layout generation that uses full space and doesn't have rounding errors
+TODO: Sublayout config options for layouts
+TODO: Write some proper layouts
+TODO: Clean up unused functions/features
 
 --]]
