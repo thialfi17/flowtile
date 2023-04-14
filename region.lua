@@ -47,7 +47,7 @@ function Region:from(x_ratio, y_ratio, w_ratio, h_ratio)
     return new
 end
 
-function Region:set_gaps(gaps, smart_gaps)
+function Region:set_gaps(gaps)
     self.gaps = gaps
 
     if self.x ~= nil then

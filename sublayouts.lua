@@ -15,28 +15,38 @@ local M = {
 
     rows = function(tab, region, count, config)
         local gaps = region.gaps
-        local height = region.height / count
+        local remaining_height = region.height
+        local done_height = 0
         for i = 0, count - 1 do
+            local height = math.ceil(remaining_height / (count - i))
             table.insert(tab, {
                 region.x + gaps / 2,
-                region.y + gaps / 2 + height*i,
+                region.y + gaps / 2 + done_height,
                 region.width - gaps,
                 height - gaps
             })
+
+            remaining_height = remaining_height - height
+            done_height = done_height + height
         end
         return tab
     end,
 
     cols = function(tab, region, count, config)
         local gaps = region.gaps
-        local width = region.width / count
+        local remaining_width = region.width
+        local done_width = 0
         for i = 0, count - 1 do
+            local width = math.ceil(remaining_width / (count - i))
             table.insert(tab, {
-                region.x + gaps / 2 + width*i,
+                region.x + gaps / 2 + done_width,
                 region.y + gaps / 2,
                 width - gaps,
                 region.height - gaps
             })
+
+            remaining_width = remaining_width - width
+            done_width = done_width + width
         end
         return tab
     end,
