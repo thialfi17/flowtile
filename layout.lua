@@ -26,6 +26,9 @@ config.set({nil, nil, "secondary_count", 1  }, {0,   nil})
 config.set({nil, nil, "main_ratio",      0.6}, {0.1, 0.9})
 config.set({nil, nil, "secondary_ratio", 0.6}, {0.1, 0.9})
 
+config.set({nil, nil, "gaps",          4}, {0, nil})
+config.set({nil, nil, "smart_gaps", true})
+
 config.outputs.layout = "main_with_stack"
 
 ----------------------------------------
@@ -68,6 +71,14 @@ end
 
 function inc(var, val)
     config.inc({CMD_OUTPUT, CMD_TAGS, var, val})
+end
+
+function set_global(var, val)
+    config.set({nil, nil, var, val})
+end
+
+function inc_global(var, val)
+    config.inc({nil, nil, var, val})
 end
 
 -- Execute arbitrary lua code on the running system. This can be useful for

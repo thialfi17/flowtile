@@ -20,6 +20,11 @@ local layouts = {
 
     grid = function(args, config)
         local r = Region:from_args(args):set_layout("grid")
+
+        if not (config.smart_gaps and args.count < 2) then
+            r:set_gaps(config.gaps)
+        end
+
         local _, wins = r:populate(args.count, config)
         return wins
     end,
@@ -29,6 +34,10 @@ local layouts = {
         local secondary_count = config.secondary_count
 
         local r = Region:from_args(args)
+
+        if not (config.smart_gaps and args.count < 2) then
+            r:set_gaps(config.gaps)
+        end
 
         local main = r:from(0, 0, main_ratio, 1):set_layout("fill", {nil, 1})
         local sub = r:from(main_ratio, 0, 1-main_ratio, 1):set_layout("rows", {1, nil})
@@ -46,6 +55,7 @@ local layouts = {
         local main_ratio = config.main_ratio
 
         local c = Region:from_args(args):set_layout("cols")
+
         c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", {nil, 1})
         c:from(0, 0, 0.5 - main_ratio / 2, 1):set_layout("rows")
         c:from(0.5 + main_ratio / 2, 0, 0.5 - main_ratio / 2, 1):set_layout("rows")
@@ -81,6 +91,10 @@ local layouts = {
         local secondary_count = config.secondary_count
 
         local c = Region:from_args(args):set_layout("cols")
+
+        if not (config.smart_gaps and args.count < 2) then
+            c:set_gaps(config.gaps)
+        end
 
         local main = c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", {nil, 1})
 

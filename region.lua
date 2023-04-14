@@ -5,6 +5,7 @@ local defaults = {
     y = 0,
     width = 0,
     height = 0,
+    gaps = 0,
 }
 
 local Region = {
@@ -44,6 +45,19 @@ function Region:from(x_ratio, y_ratio, w_ratio, h_ratio)
     table.insert(self.children, new) -- this can be made a weak reference if needed but I'm not sure it is
 
     return new
+end
+
+function Region:set_gaps(gaps, smart_gaps)
+    self.gaps = gaps
+
+    if self.x ~= nil then
+        self.x = self.x + gaps / 2
+        self.y = self.y + gaps / 2
+        self.width = self.width - gaps
+        self.height = self.height - gaps
+    end
+
+    return self
 end
 
 function Region:set_layout(sublayout, limits)
@@ -163,11 +177,12 @@ function Region:populate(count, config, wins)
 end
 
 function Region:__index(k)
+    local dont_inherit = { children = true, parent = true }
     -- Otherwise special handling to calculate values from parent
     if k == 'x' then
-        return (self.parent.width  - self.parent.x) * self.x_ratio + self.parent.x
+        return self.parent.width * self.x_ratio + self.parent.x
     elseif k == 'y' then
-        return (self.parent.height - self.parent.y) * self.y_ratio + self.parent.y
+        return self.parent.height * self.y_ratio + self.parent.y
     elseif k == 'width' then
         return self.parent.width * self.w_ratio
     elseif k == 'height' then
@@ -179,11 +194,16 @@ function Region:__index(k)
         else
             return min
         end
+    elseif dont_inherit[k] then
+        return nil
     end
 
     -- Otherwise return item inherited from base class (needed for funcs)
-    raw_v = rawget(Region, k)
-    return raw_v
+    if rawget(self, "parent") then
+        return rawget(self, "parent")[k]
+    else
+        return rawget(Region, k)
+    end
 end
 
 function Region:print(indent)

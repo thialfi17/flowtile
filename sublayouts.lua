@@ -1,44 +1,48 @@
 local M = {
 
     fill = function(tab, region, count, config)
+        local gaps = region.gaps
         for i = 1, count do
             table.insert(tab, {
-                region.x,
-                region.y,
-                region.width,
-                region.height
+                region.x + gaps / 2,
+                region.y + gaps / 2,
+                region.width - gaps,
+                region.height - gaps
             })
         end
         return tab
     end,
 
     rows = function(tab, region, count, config)
+        local gaps = region.gaps
         local height = region.height / count
         for i = 0, count - 1 do
             table.insert(tab, {
-                region.x,
-                region.y + height*i,
-                region.width,
-                height
+                region.x + gaps / 2,
+                region.y + gaps / 2 + height*i,
+                region.width - gaps,
+                height - gaps
             })
         end
         return tab
     end,
 
     cols = function(tab, region, count, config)
+        local gaps = region.gaps
         local width = region.width / count
         for i = 0, count - 1 do
             table.insert(tab, {
-                region.x + width*i,
-                region.y,
-                width,
-                region.height
+                region.x + gaps / 2 + width*i,
+                region.y + gaps / 2,
+                width - gaps,
+                region.height - gaps
             })
         end
         return tab
     end,
 
     grid = function(tab, region, count, config)
+        local gaps = region.gaps
         local factor = 16 / 9
         local closest_factor = nil
         local rows, cols
@@ -77,10 +81,10 @@ local M = {
         local current_row = 0
         for i = 0, count-1 do
             table.insert(tab, {
-                region.x + (current_row * x_offset),
-                region.y + (current_col * y_offset),
-                width,
-                height,
+                region.x + gaps / 2 + (current_row * x_offset),
+                region.y + gaps / 2 + (current_col * y_offset),
+                width - gaps,
+                height - gaps,
             })
 
             if current_col < rows - 1 then
