@@ -27,7 +27,6 @@ config.set({nil, nil, "main_ratio",      0.6}, {0.1, 0.9})
 config.set({nil, nil, "secondary_ratio", 0.6}, {0.1, 0.9})
 
 config.outputs.layout = "main_with_stack"
---config.output["HDMI-A-1"].tags.layout = "grid"
 
 ----------------------------------------
 --            Layout Code             --

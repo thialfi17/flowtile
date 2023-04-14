@@ -46,10 +46,25 @@ function Region:from(x_ratio, y_ratio, w_ratio, h_ratio)
     return new
 end
 
-function Region:set_layout(sublayout, count)
+function Region:set_layout(sublayout, limits)
     self.sublayout = sublayout
-    self.count = count
+
+    if limits ~= nil then
+        self.min = limits[1]
+        self.max = limits[2]
+    end
+
     return self
+end
+
+function Region:min_children()
+    local min = 0
+    if self.children ~= nil then
+        for _, child in pairs(self.children) do
+            min = min + child.min
+        end
+    end
+    return min
 end
 
 function Region:fill_last()
@@ -62,8 +77,8 @@ function Region:populate(count, config, wins)
     local sublayouts = require('sublayouts')
 
     local handled_windows
-    if self.count ~= nil and count > self.count then
-        handled_windows = self.count
+    if self.max ~= nil and count > self.max then
+        handled_windows = self.max
     else
         handled_windows = count
     end
@@ -74,7 +89,7 @@ function Region:populate(count, config, wins)
     end
 
     -- Not enough windows to flow down into children
-    if count < #self.children then
+    if count < self:min_children() then
         return remaining, sublayouts[self.sublayout](wins, self, count, config)
     end
 
@@ -89,10 +104,10 @@ function Region:populate(count, config, wins)
         if child.fill_last == true then
             table.insert(fill_last, child)
         else
-            if child.count and child.count ~= 0 then
+            if child.max and child.max ~= 0 then
                 table.insert(fill_by_count, child)
             end
-            if child.count == nil then
+            if child.max == nil then
                 table.insert(fill_remaining, child)
             end
             total = total + 1
@@ -124,7 +139,7 @@ function Region:populate(count, config, wins)
     while total ~= 0 and (fill_with * total < count) do
         local remove = {}
         for i, child in pairs(fill_by_count) do
-            if fill_with >= child.count then
+            if fill_with >= child.max then
                 remaining, wins = child:populate(fill_with, config, wins)
                 count = count - (fill_with - remaining)
                 total = total - 1
@@ -148,10 +163,6 @@ function Region:populate(count, config, wins)
 end
 
 function Region:__index(k)
-    local raw_v = rawget(self, k)
-    -- Return items from this instance if they exist
-    if raw_v then return raw_v end
-
     -- Otherwise special handling to calculate values from parent
     if k == 'x' then
         return (self.parent.width  - self.parent.x) * self.x_ratio + self.parent.x
@@ -161,6 +172,13 @@ function Region:__index(k)
         return self.parent.width * self.w_ratio
     elseif k == 'height' then
         return self.parent.height * self.h_ratio
+    elseif k == 'min' then
+        local min = self:min_children()
+        if min == 0 then
+            return 1
+        else
+            return min
+        end
     end
 
     -- Otherwise return item inherited from base class (needed for funcs)
@@ -191,9 +209,6 @@ function Region:print(indent)
         print(pre .. '  },')
     end
     print(pre .. '}')
-end
-
-function Region:validate()
 end
 
 return Region
