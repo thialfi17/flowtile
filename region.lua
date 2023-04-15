@@ -1,22 +1,21 @@
 local utils = require('utils')
 
-local defaults = {
+local copy = {
     x = 0,
     y = 0,
     width = 0,
     height = 0,
-    gaps = 0,
 }
 
 local Region = {
     sublayout = "fill",
+    gaps = 0,
 }
 
 -- Create a new (empty!) region object
 function Region:new()
     local new = {}
     setmetatable(new, self)
-    --self.__index = self
     return new
 end
 
@@ -24,7 +23,7 @@ end
 function Region:from_args(args)
     local new = Region:new()
 
-    for k, v in pairs(defaults) do
+    for k, v in pairs(copy) do
         new[k] = args[k] or v
     end
 
@@ -32,13 +31,20 @@ function Region:from_args(args)
 end
 
 -- Create a region as a sub area of an existing region
-function Region:from(x_ratio, y_ratio, w_ratio, h_ratio)
+function Region:from(x, y, width, height)
     local new = Region:new()
 
-    new.x_ratio = x_ratio
-    new.y_ratio = y_ratio
-    new.w_ratio = w_ratio
-    new.h_ratio = h_ratio
+    if x + width > self.width then
+        print("Sub-region X ends outside of bounds!")
+    end
+    if y + height > self.height then
+        print("Sub-region Y ends outside of bounds!")
+    end
+
+    new.x = self.x + x
+    new.y = self.y + y
+    new.width = width
+    new.height = height
     new.parent = self
 
     self.children = self.children or {}
@@ -179,15 +185,7 @@ end
 function Region:__index(k)
     local dont_inherit = { children = true, parent = true, last = true }
     -- Otherwise special handling to calculate values from parent
-    if k == 'x' then
-        return math.floor(self.parent.width * self.x_ratio) + self.parent.x
-    elseif k == 'y' then
-        return math.floor(self.parent.height * self.y_ratio) + self.parent.y
-    elseif k == 'width' then
-        return math.floor(self.parent.width * self.w_ratio)
-    elseif k == 'height' then
-        return math.floor(self.parent.height * self.h_ratio)
-    elseif k == 'min' then
+    if k == 'min' then
         local min = self:min_children()
         if min == 0 then
             return 1

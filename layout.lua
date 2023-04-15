@@ -29,7 +29,7 @@ config.set({nil, nil, "secondary_ratio", 0.6}, {0.1, 0.9})
 config.set({nil, nil, "gaps",          4}, {0, nil})
 config.set({nil, nil, "smart_gaps", true})
 
-config.outputs.layout = "main_with_stack"
+config.set({nil, nil, "layout", "main_with_stack"})
 
 ----------------------------------------
 --            Layout Code             --
@@ -73,6 +73,10 @@ function inc(var, val)
     config.inc({CMD_OUTPUT, CMD_TAGS, var, val})
 end
 
+function get(var, val)
+    return config.get({CMD_OUTPUT, CMD_TAGS, var, val})
+end
+
 function set_global(var, val)
     config.set({nil, nil, var, val})
 end
@@ -100,5 +104,7 @@ TODO: Region layout generation that uses full space and doesn't have rounding er
 TODO: Sublayout config options for layouts
 TODO: Write some proper layouts
 TODO: Clean up unused functions/features
+
+TODO: Can gaps be changed so that if children don't have gaps then they are flush with the edges?
 
 --]]
