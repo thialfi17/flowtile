@@ -82,7 +82,7 @@ function Region:min_children()
 end
 
 function Region:fill_last()
-    self.fill_last = true
+    self.last = true
     return self
 end
 
@@ -115,10 +115,10 @@ function Region:populate(count, config, wins)
     local total = 0
 
     for _, child in pairs(self.children) do
-        if child.fill_last == true then
+        if child.last == true then
             table.insert(fill_last, child)
         else
-            if child.max and child.max ~= 0 then
+            if child.max ~= nil and child.max ~= 0 then
                 table.insert(fill_by_count, child)
             end
             if child.max == nil then
@@ -177,16 +177,16 @@ function Region:populate(count, config, wins)
 end
 
 function Region:__index(k)
-    local dont_inherit = { children = true, parent = true }
+    local dont_inherit = { children = true, parent = true, last = true }
     -- Otherwise special handling to calculate values from parent
     if k == 'x' then
-        return self.parent.width * self.x_ratio + self.parent.x
+        return math.floor(self.parent.width * self.x_ratio) + self.parent.x
     elseif k == 'y' then
-        return self.parent.height * self.y_ratio + self.parent.y
+        return math.floor(self.parent.height * self.y_ratio) + self.parent.y
     elseif k == 'width' then
-        return self.parent.width * self.w_ratio
+        return math.floor(self.parent.width * self.w_ratio)
     elseif k == 'height' then
-        return self.parent.height * self.h_ratio
+        return math.floor(self.parent.height * self.h_ratio)
     elseif k == 'min' then
         local min = self:min_children()
         if min == 0 then
@@ -210,7 +210,7 @@ function Region:print(indent)
     indent = indent or 0
     local pre = string.rep(' ', indent)
 
-    keys = {'x', 'y', 'width', 'height', 'sublayout', 'count'}
+    keys = {'x', 'y', 'width', 'height', 'sublayout', 'min', 'max', 'last'}
 
     print('Region (' .. tostring(self) .. ') {')
 

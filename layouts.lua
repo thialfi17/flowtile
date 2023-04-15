@@ -75,17 +75,22 @@ local layouts = {
             c:set_gaps(config.gaps)
         end
 
-        local main = c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", {nil, 1})
+        local main_offset = 0.5 - main_ratio / 2
+        local main = c:from(main_offset, 0, main_ratio, 1):set_layout("fill", {nil, 1})
 
-        local left = c:from(0, 0, 0.5 - main_ratio / 2, 1):set_layout("rows", {1, nil})
-        local right = c:from(0.5 + main_ratio / 2, 0, 0.5 - main_ratio / 2, 1):set_layout("rows", {1, nil})
+        if secondary_count ~= 0 and args.count > 3 then
+            local left_top = c:from(0, 0, main_offset, secondary_ratio):set_layout("rows", {secondary_count, secondary_count})
+            local left_btm = c:from(0, secondary_ratio, main_offset, 1 - secondary_ratio):set_layout("rows"):fill_last()
 
-        if secondary_count ~= 0 then
-            local left_top = left:from(0, 0, 1, secondary_ratio):set_layout("rows", {secondary_count, secondary_count})
-            local left_btm = left:from(0, secondary_ratio, 1, 1 - secondary_ratio):set_layout("rows"):fill_last()
-
-            local right_top = right:from(0, 0, 1, secondary_ratio):set_layout("rows", {secondary_count, secondary_count})
-            local right_btm = right:from(0, secondary_ratio, 1, 1 - secondary_ratio):set_layout("rows"):fill_last()
+            if args.count > 4 then
+                local right_top = c:from(main_ratio + main_offset, 0, main_offset, secondary_ratio):set_layout("rows", {secondary_count, secondary_count})
+                local right_btm = c:from(main_ratio + main_offset, secondary_ratio, main_offset, 1 - secondary_ratio):set_layout("rows"):fill_last()
+            else
+                local right = c:from(main_offset + main_ratio, 0, main_offset, 1):set_layout("rows", {1, nil})
+            end
+        else
+            local left = c:from(0, 0, main_offset, 1):set_layout("rows", {1, nil}):fill_last()
+            local right = c:from(main_offset + main_ratio, 0, main_offset, 1):set_layout("rows", {1, nil}):fill_last()
         end
 
         local _, wins = c:populate(args.count, config)
