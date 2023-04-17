@@ -104,11 +104,10 @@ end
 --[[
 
 TODO: Documentation!
-TODO: Layout specific options that can also be set per output/tag
-TODO: Region layout generation that uses full space and doesn't have rounding errors
 TODO: Sublayout config options for layouts
 TODO: Write some proper layouts
 TODO: Clean up unused functions/features
+TODO: Add verification for config options again
 
 TODO: Can gaps be changed so that if children don't have gaps then they are flush with the edges?
 
