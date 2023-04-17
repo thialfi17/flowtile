@@ -22,14 +22,14 @@ layouts = require("layouts")
 
 --]]
 
-config.set({nil, nil, "secondary_count", 1  }, {0,   nil})
-config.set({nil, nil, "main_ratio",      0.6}, {0.1, 0.9})
-config.set({nil, nil, "secondary_ratio", 0.6}, {0.1, 0.9})
+config.set({nil, nil, nil, "secondary_count", 1  }, {0,   nil})
+config.set({nil, nil, nil, "main_ratio",      0.6}, {0.1, 0.9})
+config.set({nil, nil, nil, "secondary_ratio", 0.6}, {0.1, 0.9})
 
-config.set({nil, nil, "gaps",          4}, {0, nil})
-config.set({nil, nil, "smart_gaps", true})
+config.set({nil, nil, nil, "gaps",          4}, {0, nil})
+config.set({nil, nil, nil, "smart_gaps", true})
 
-config.set({nil, nil, "layout", "main_with_stack"})
+config.set({nil, nil, nil, "layout", "main_with_stack"})
 
 ----------------------------------------
 --            Layout Code             --
@@ -48,7 +48,7 @@ config.set({nil, nil, "layout", "main_with_stack"})
 --  * width
 --  * height
 function handle_layout(args)
-    local config = config.output[args.output].tag[args.tags]
+    local config = config.pget(args.output, args.tags, config.get({args.output, args.tags, nil, "layout"}))
     local wins = layouts[config.layout](args, config)
     return wins
 end
@@ -66,23 +66,28 @@ end
 --]]
 
 function set(var, val)
-    config.set({CMD_OUTPUT, CMD_TAGS, var, val})
+    local layout = config.get({CMD_OUTPUT, CMD_TAGS, nil, "layout"})
+    if var == "layout" then
+        layout = nil
+    end
+
+    config.set({CMD_OUTPUT, CMD_TAGS, layout, var, val})
 end
 
 function inc(var, val)
-    config.inc({CMD_OUTPUT, CMD_TAGS, var, val})
+    config.inc({CMD_OUTPUT, CMD_TAGS, config.get({CMD_OUTPUT, CMD_TAGS, nil, "layout"}) , var, val})
 end
 
 function get(var, val)
-    return config.get({CMD_OUTPUT, CMD_TAGS, var, val})
+    config.get({CMD_OUTPUT, CMD_TAGS, config.get({CMD_OUTPUT, CMD_TAGS, nil, "layout"}) , var})
 end
 
 function set_global(var, val)
-    config.set({nil, nil, var, val})
+    config.set({nil, nil, nil, var, val})
 end
 
 function inc_global(var, val)
-    config.inc({nil, nil, var, val})
+    config.inc({nil, nil, nil, var, val})
 end
 
 -- Execute arbitrary lua code on the running system. This can be useful for

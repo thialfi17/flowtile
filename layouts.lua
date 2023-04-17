@@ -71,7 +71,7 @@ local layouts = {
 
         local main = c:from(main_offset, 0, main_width, c.height):set_layout("fill", {nil, 1})
 
-        if secondary_count ~= 0 and args.count > 3 then
+        if secondary_count ~= 0 and args.count > (1 + secondary_count * 2) then
             local secondary_height = math.floor(c.height * secondary_ratio)
             local remaining_offset = secondary_height
             local remaining_height = c.height - remaining_offset
@@ -79,7 +79,7 @@ local layouts = {
             local left_top = c:from(0, 0, main_offset, secondary_height):set_layout("rows", {secondary_count, secondary_count})
             local left_btm = c:from(0, secondary_height, main_offset, remaining_height):set_layout("rows"):fill_last()
 
-            if args.count > 4 then
+            if args.count > (2 + secondary_count * 2) then
                 local right_top = c:from(main_offset + main_width, 0, main_offset, secondary_height):set_layout("rows", {secondary_count, secondary_count})
                 local right_btm = c:from(main_offset + main_width, secondary_height, main_offset, remaining_height):set_layout("rows"):fill_last()
             else
