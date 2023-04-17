@@ -11,9 +11,37 @@ local config = {}
 ----------------------------------------
 
 config.settings = {}
+config.restrict = {}
 
 
-config.lim = function(var, min, max)
+config.lim = function(var, val, min, max)
+
+    if config.restrict[var] then
+        local restrict = config.restrict[var]
+        if type(val) ~= restrict.type then
+            print("Incompatible type for setting " .. var .. "(" .. type(val) .. " ~= " .. restrict.type .. ")")
+            return false, nil
+        end
+
+        if type(val) == "number" then
+            if restrict.min and val < restrict.min then
+                val = restrict.min
+            end
+            if restrict.max and val > restrict.max then
+                val = restrict.max
+            end
+            return true, val
+        end
+        return true, val
+    else
+        config.restrict[var] = {
+            type = type(val),
+            min = min,
+            max = max,
+        }
+        return true, val
+    end
+
 end
 
 config.set = function(args, lim)
@@ -23,18 +51,45 @@ config.set = function(args, lim)
     local var = args[4]
     local val = args[5]
 
+    local min, max
+    if lim then
+        min = lim[1]
+        max = lim[2]
+    end
+
     if var == nil or type(var) ~= "string" then
         error("Invalid variable name!")
     end
 
-    if lim ~= nil then
-        config.lim(var, lim[1], lim[2])
-    end
+    pass, val = config.lim(var, val, min, max)
 
+    if not pass then return end
 
     if sel_out == nil then sel_out = "all" end
     if sel_tag == nil then sel_tag = "all" end
     if sel_lay == nil then sel_lay = "all" end
+
+    if (config.settings.all == nil or config.settings.all.all == nil or config.settings.all.all.all[var] == nil) and (sel_out ~= "all" or sel_tag ~= "all" or sel_lay ~= "all") then
+        local output = config.settings["all"]
+        if not output then
+            output = {}
+            config.settings["all"] = output
+        end
+
+        local tag = output["all"]
+        if not tag then
+            tag = {}
+            output["all"] = tag
+        end
+
+        local layout = tag["all"]
+        if not layout then
+            layout = {}
+            tag["all"] = layout
+        end
+
+        layout[var] = val
+    end
     
     local output = config.settings[sel_out]
     if not output then

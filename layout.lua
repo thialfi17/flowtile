@@ -107,7 +107,6 @@ TODO: Documentation!
 TODO: Sublayout config options for layouts
 TODO: Write some proper layouts
 TODO: Clean up unused functions/features
-TODO: Add verification for config options again
 
 TODO: Can gaps be changed so that if children don't have gaps then they are flush with the edges?
 
