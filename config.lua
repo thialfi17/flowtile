@@ -133,19 +133,34 @@ config.get = function(args)
     local output = config.settings[sel_out]
     if not output then
         sel_out = "all"
-        output = config.settings["all"]
+        output = config.settings[sel_out]
     end
 
     local tag = output[sel_tag]
     if not tag then
         sel_tag = "all"
-        tag = output["all"]
+        tag = output[sel_tag]
+        if not tag then
+            sel_out = "all"
+            output = config.settings[sel_out]
+            tag = output[sel_tag]
+        end
     end
 
     local layout = tag[sel_lay]
     if not layout then
         sel_lay = "all"
         layout = tag["all"]
+        if not layout then
+            sel_tag = "all"
+            tag = output[sel_tag]
+            if not tag then
+                sel_out = "all"
+                output = config.settings[sel_out]
+                tag = output[sel_tag]
+            end
+            layout = tag[sel_lay]
+        end
     end
 
     if layout and layout[var] ~= nil then
@@ -217,6 +232,89 @@ config.pget = function(output, tag, layout)
     end
     setmetatable(o, o)
     return o
+end
+
+config.reset = function(sel_out, sel_tag, sel_lay)
+    if sel_out == nil then
+        sel_out = "all"
+    end
+
+    if sel_tag == nil then
+        sel_tag = "all"
+    end
+
+    if sel_lay == nil then
+        sel_lay = "all"
+    end
+
+    output = config.settings[sel_out]
+
+    if not output then return end
+
+    tag = output[sel_tag]
+
+    if not tag then return end
+
+    tag[sel_lay] = nil
+end
+
+--[[
+
+    NOTE: These functions are global which means they are all callable as a
+    layout command. When a layout command is called the global variables
+    CMD_OUTPUT and CMD_TAGS are set to the current output and the current tag
+    respectively.
+
+--]]
+
+function set(var, val, min, max)
+    local layout = config.get({CMD_OUTPUT, CMD_TAGS, nil, "layout"})
+    if var == "layout" or not config.get({nil, nil, nil, "per-layout-config"}) then
+        layout = nil
+    end
+
+    config.set({CMD_OUTPUT, CMD_TAGS, layout, var, val}, {min, max})
+end
+
+function inc(var, val)
+    local layout = config.get({CMD_OUTPUT, CMD_TAGS, nil, "layout"})
+    if var == "layout" or not config.get({nil, nil, nil, "per-layout-config"}) then
+        layout = nil
+    end
+
+    config.inc({CMD_OUTPUT, CMD_TAGS, layout, var, val})
+end
+
+function get(var)
+    local layout = config.get({CMD_OUTPUT, CMD_TAGS, nil, "layout"})
+    if var == "layout" or not config.get({nil, nil, nil, "per-layout-config"}) then
+        layout = nil
+    end
+
+    return config.get({CMD_OUTPUT, CMD_TAGS, layout, var})
+end
+
+function reset_config()
+    local layout = config.get({CMD_OUTPUT, CMD_TAGS, nil, "layout"})
+    local sel_layout = layout
+    if var == "layout" or not config.get({nil, nil, nil, "per-layout-config"}) then
+        sel_layout = nil
+    end
+
+    config.reset(CMD_OUTPUT, CMD_TAGS, sel_layout)
+    config.set({CMD_OUTPUT, CMD_TAGS, nil, "layout", layout})
+end
+
+function set_global(var, val, min, max)
+    config.set({nil, nil, nil, var, val}, {min, max})
+end
+
+function inc_global(var, val)
+    config.inc({nil, nil, nil, var, val})
+end
+
+function get_global(var, val)
+    return config.get({nil, nil, nil, var})
 end
 
 return config
