@@ -1,14 +1,4 @@
-local utils = require("utils")
-
-----------------------------------------
---           Config Layout            --
-----------------------------------------
-
 local config = {}
-
-----------------------------------------
---          Implementation            --
-----------------------------------------
 
 config.settings = {}
 config.restrict = {}
@@ -90,7 +80,7 @@ config.set = function(args, lim)
 
         layout[var] = val
     end
-    
+
     local output = config.settings[sel_out]
     if not output then
         output = {}
@@ -117,7 +107,7 @@ config.inc = function(args)
 
     args[5] = args[5] + val
 
-    config.set(args)    
+    config.set(args)
 end
 
 config.get = function(args)
@@ -129,42 +119,22 @@ config.get = function(args)
     if sel_out == nil then sel_out = "all" end
     if sel_tag == nil then sel_tag = "all" end
     if sel_lay == nil then sel_lay = "all" end
-    
-    local output = config.settings[sel_out]
-    if not output then
-        sel_out = "all"
-        output = config.settings[sel_out]
+
+    if not config.settings[sel_out] then
+        config.settings[sel_out] = {}
     end
 
-    local tag = output[sel_tag]
-    if not tag then
-        sel_tag = "all"
-        tag = output[sel_tag]
-        if not tag then
-            sel_out = "all"
-            output = config.settings[sel_out]
-            tag = output[sel_tag]
-        end
+    if not config.settings[sel_out][sel_tag] then
+        config.settings[sel_out][sel_tag] = {}
     end
 
-    local layout = tag[sel_lay]
-    if not layout then
-        sel_lay = "all"
-        layout = tag["all"]
-        if not layout then
-            sel_tag = "all"
-            tag = output[sel_tag]
-            if not tag then
-                sel_out = "all"
-                output = config.settings[sel_out]
-                tag = output[sel_tag]
-            end
-            layout = tag[sel_lay]
-        end
+    if not config.settings[sel_out][sel_tag][sel_lay] then
+        config.settings[sel_out][sel_tag][sel_lay] = {}
     end
 
-    if layout and layout[var] ~= nil then
-        return layout[var]
+    local value = config.settings[sel_out][sel_tag][sel_lay][var]
+    if value ~= nil then
+        return value
     end
 
     if sel_lay ~= "all" then
@@ -318,3 +288,9 @@ function get_global(var, val)
 end
 
 return config
+
+--[[
+
+    TODO: Improve the code for inheriting options and checking that tables exist
+
+--]]

@@ -82,6 +82,18 @@ layouts = require("layouts")
     Any of {output}, {tag} or {layout} can be set to "nil" to access/set global
     versions which will be inherited. The value of "all" will also access/set
     global versions. The value "nil" is translated to "all" internally.
+    Remember that the tag numbers are powers of two for individual tags and
+    that for groups of tags the number is the sum of the individual tags!
+
+    For example, to set the default layout of every tag on output "HDMI-A-1" to
+    the grid layout:
+
+        config.set({ "HDMI-A-1", nil, nil, "layout", "grid"})
+
+    Alternatively to set the default layout to the grid layout on the first tag
+    of every output:
+
+        config.set({ nil, 1, nil, "layout", "grid"})
 
     'config.pget' returns a table which can be accessed with option names to
     get the values of options with all of the inheritance rules that the
@@ -96,16 +108,26 @@ layouts = require("layouts")
 
 set_global("per-layout-config", true)
 
+set_global("secondary_ratio", 0.6, 0.1, 0.9)
 set_global("secondary_count", 1,   0,   nil)
 set_global("main_ratio",      0.6, 0.1, 0.9)
-set_global("secondary_ratio", 0.6, 0.1, 0.9)
+
+set_global("secondary_sublayout", "grid")
+set_global("tertiary_sublayout",  "stack")
 
 set_global("gaps",            4,   0,   nil) -- To disable set to 0
 set_global("smart_gaps",   true)
 
-set_global("layout", "main_with_stack")
+set_global("layout",           "main_with_stack")
 
---config.set({ "HDMI-A-1", nil, nil, "layout", "grid"})
+-----------------------
+-- Sublayout Options --
+-----------------------
+
+set_global("max_offset",     30, 0,   nil)
+set_global("grid_ratio",    7/9, 1/3, 3/1)
+
+config.set({nil, nil, "grid", "grid_ratio", 16/9})
 
 ----------------------------------------
 --            Layout Code             --

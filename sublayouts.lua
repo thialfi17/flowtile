@@ -13,6 +13,21 @@ local M = {
         return tab
     end,
 
+    stack = function(tab, region, count, config)
+        local gaps = region.gaps
+        local max_offset = config.max_offset
+        local offset_per = math.floor(max_offset / count)
+        for i = 0, count-1 do
+            table.insert(tab, {
+                region.x + (gaps / 2) + (offset_per * i),
+                region.y + (gaps / 2) + (offset_per * i),
+                region.width - gaps - offset_per * ((count - 1)),
+                region.height - gaps - offset_per * ((count - 1))
+            })
+        end
+        return tab
+    end,
+
     rows = function(tab, region, count, config)
         local gaps = region.gaps
         local remaining_height = region.height
@@ -53,7 +68,7 @@ local M = {
 
     grid = function(tab, region, count, config)
         local gaps = region.gaps
-        local factor = 16 / 9
+        local factor = config.grid_ratio
         local closest_factor = nil
         local rows, cols
 
