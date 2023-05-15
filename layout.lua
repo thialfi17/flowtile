@@ -125,9 +125,10 @@ set_global("layout",           "main_with_stack")
 -----------------------
 
 set_global("max_offset",     30, 0,   nil)
-set_global("grid_ratio",    7/9, 1/3, 3/1)
+set_global("grid_ratio",    16/9, 1/3, 3/1)
 
-config.set({nil, nil, "grid", "grid_ratio", 16/9})
+-- Only sets the default ratio for the grid *main* layout
+--config.set({nil, nil, "grid", "grid_ratio", 16/9})
 
 ----------------------------------------
 --            Layout Code             --

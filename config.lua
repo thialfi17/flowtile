@@ -167,7 +167,14 @@ config.get = function(args)
         if config.settings["all"] ~= nil then
             if config.settings["all"][sel_tag] ~= nil then
                 if config.settings["all"][sel_tag][sel_lay] ~= nil then
-                    return config.settings["all"][sel_tag][sel_lay][var]
+                    if config.settings["all"][sel_tag][sel_lay][var] ~= nil then
+                        return config.settings["all"][sel_tag][sel_lay][var]
+                    end
+                end
+                if config.settings["all"][sel_tag]["all"] ~= nil then
+                    if config.settings["all"][sel_tag]["all"][var] ~= nil then
+                        return config.settings["all"][sel_tag]["all"][var]
+                    end
                 end
             end
 
@@ -288,9 +295,3 @@ function get_global(var, val)
 end
 
 return config
-
---[[
-
-    TODO: Improve the code for inheriting options and checking that tables exist
-
---]]
