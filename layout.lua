@@ -134,22 +134,25 @@ set_global("grid_ratio",    16/9, 1/3, 3/1)
 --            Layout Code             --
 ----------------------------------------
 
--- args:
---  * tags: focused tags
---  * count: window count
---  * width: output width
---  * height: output height
---  * output: output name
---
--- should return a table with exactly `count` entries. Each entry is 4 numbers:
---  * X
---  * Y
---  * width
---  * height
-function handle_layout(args)
-    local layout = config.get({args.output, args.tags, nil, "layout"})
+---@class WinData
+---@field [1] number # The X coordinate of the window
+---@field [2] number # The Y coordinate of the window
+---@field [3] number # The width of the window
+---@field [4] number # The height of the window
 
-    if not config.get({nil, nil, nil, "per-layout-config"}) then
+---@alias LuaArgs {tags: number, count: number, width: number, height: number, output: string} Arguments provided by luatile to determine the window layout
+
+---Function that is called by luatile to handle the layout.
+---@param args LuaArgs
+---@return WinData[] wins Array of window positions and dimenions
+function handle_layout(args)
+    local layout = config.get({
+        output = args.output,
+        tag = args.tags,
+        opt = "layout"
+    })
+
+    if not config.get({opt = "per-layout-config"}) then
         layout = nil
     end
 
@@ -161,8 +164,6 @@ end
 --[[
 
 TODO: Documentation!
-TODO: Sublayout config options for layouts
-TODO: Write some proper layouts
 TODO: Clean up unused functions/features
 TODO: Standardize function interfaces
 

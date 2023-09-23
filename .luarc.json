@@ -1,0 +1,5 @@
+{
+    "runtime.version": "LuaJIT",
+    "diagnostics.disable": ["lowercase-global"],
+    "diagnostics.globals": ["CMD_OUTPUT", "CMD_TAGS"]
+}

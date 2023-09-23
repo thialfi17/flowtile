@@ -1,127 +1,142 @@
-local M = {
+---@module 'region'
+---@module 'layout'
+---@module 'config'
 
-    fill = function(tab, region, count, config)
-        local gaps = region.gaps
-        for i = 1, count do
-            table.insert(tab, {
-                region.x + gaps / 2,
-                region.y + gaps / 2,
-                region.width - gaps,
-                region.height - gaps
-            })
-        end
-        return tab
-    end,
+---@alias SubLayout fun(tab: WinData[], region: Region, count: number, config: Config): WinData[]
 
-    stack = function(tab, region, count, config)
-        local gaps = region.gaps
-        local max_offset = config.max_offset
-        local offset_per = math.floor(max_offset / count)
-        for i = 0, count-1 do
-            table.insert(tab, {
-                region.x + (gaps / 2) + (offset_per * i),
-                region.y + (gaps / 2) + (offset_per * i),
-                region.width - gaps - offset_per * ((count - 1)),
-                region.height - gaps - offset_per * ((count - 1))
-            })
-        end
-        return tab
-    end,
+local M = {}
 
-    rows = function(tab, region, count, config)
-        local gaps = region.gaps
-        local remaining_height = region.height
-        local done_height = 0
-        for i = 0, count - 1 do
-            local height = math.ceil(remaining_height / (count - i))
-            table.insert(tab, {
-                region.x + gaps / 2,
-                region.y + gaps / 2 + done_height,
-                region.width - gaps,
-                height - gaps
-            })
+---@type SubLayout
+---Puts each window maximised on top of each other in the `Region`.
+M.fill = function(tab, region, count, _)
+    local gaps = region.gaps
+    for _ = 1, count do
+        table.insert(tab, {
+            region.x + gaps / 2,
+            region.y + gaps / 2,
+            region.width - gaps,
+            region.height - gaps
+        })
+    end
+    return tab
+end
 
-            remaining_height = remaining_height - height
-            done_height = done_height + height
-        end
-        return tab
-    end,
+---@type SubLayout
+---Puts each window on top of each other but slightly offset to make it possible to see there are multiple windows. Maximum offset is configurable with `config.max_offset`.
+M.stack = function(tab, region, count, config)
+    local gaps = region.gaps
+    local max_offset = config.max_offset
+    local offset_per = math.floor(max_offset / count)
+    for i = 0, count - 1 do
+        table.insert(tab, {
+            region.x + (gaps / 2) + (offset_per * i),
+            region.y + (gaps / 2) + (offset_per * i),
+            region.width - gaps - offset_per * ((count - 1)),
+            region.height - gaps - offset_per * ((count - 1))
+        })
+    end
+    return tab
+end
 
-    cols = function(tab, region, count, config)
-        local gaps = region.gaps
-        local remaining_width = region.width
-        local done_width = 0
-        for i = 0, count - 1 do
-            local width = math.ceil(remaining_width / (count - i))
-            table.insert(tab, {
-                region.x + gaps / 2 + done_width,
-                region.y + gaps / 2,
-                width - gaps,
-                region.height - gaps
-            })
+---@type SubLayout
+---Places windows stacked one above another without overlapping.
+M.rows = function(tab, region, count, _)
+    local gaps = region.gaps
+    local remaining_height = region.height
+    local done_height = 0
+    for i = 0, count - 1 do
+        local height = math.ceil(remaining_height / (count - i))
+        table.insert(tab, {
+            region.x + gaps / 2,
+            region.y + gaps / 2 + done_height,
+            region.width - gaps,
+            height - gaps
+        })
 
-            remaining_width = remaining_width - width
-            done_width = done_width + width
-        end
-        return tab
-    end,
+        remaining_height = remaining_height - height
+        done_height = done_height + height
+    end
+    return tab
+end
 
-    grid = function(tab, region, count, config)
-        local gaps = region.gaps
-        local factor = config.grid_ratio
-        local closest_factor = nil
-        local rows, cols
+---@type SubLayout
+---Places windows side-by-side without overlapping.
+M.cols = function(tab, region, count, _)
+    local gaps = region.gaps
+    local remaining_width = region.width
+    local done_width = 0
+    for i = 0, count - 1 do
+        local width = math.ceil(remaining_width / (count - i))
+        table.insert(tab, {
+            region.x + gaps / 2 + done_width,
+            region.y + gaps / 2,
+            width - gaps,
+            region.height - gaps
+        })
 
-        for x = 1, (1 + count/2) do
-            local y = math.ceil(count / x)
-            local cur_factor
+        remaining_width = remaining_width - width
+        done_width = done_width + width
+    end
+    return tab
+end
 
-            if x * y == count + y then goto continue end
+---@type SubLayout
+---Places windows in a grid. Resizes the grid depending on the number of windows and the target aspect ratio of the grid cells. Target aspect ratio is configured with `config.grid_ratio`
+M.grid = function(tab, region, count, config)
+    local gaps = region.gaps
+    local factor = config.grid_ratio
+    local closest_factor = nil
+    local rows, cols
 
-            local width = region.width / x
-            local height = region.height / y
-            cur_factor = width / height
+    for x = 1, (1 + count / 2) do
+        local y = math.ceil(count / x)
+        local cur_factor
 
-            local diff = math.abs(factor - cur_factor)
-            if closest_factor == nil or diff < closest_factor then
-                if closest_factor ~= nil and (count < (x*y)-y or count < (x*y)-x) then
-                    goto continue
-                end
+        if x * y == count + y then goto continue end
 
-                cols = x
-                rows = y
-                closest_factor = diff
-                if cur_factor == factor then break end
+        local width = region.width / x
+        local height = region.height / y
+        cur_factor = width / height
+
+        local diff = math.abs(factor - cur_factor)
+        if closest_factor == nil or diff < closest_factor then
+            if closest_factor ~= nil and (count < (x * y) - y or count < (x * y) - x) then
+                goto continue
             end
 
-            ::continue::
+            cols = x
+            rows = y
+            closest_factor = diff
+            if cur_factor == factor then break end
         end
 
-        local width = (region.width / cols)
-        local height = (region.height / rows)
-        local x_offset = width
-        local y_offset = height
+        ::continue::
+    end
 
-        local current_col = 0
-        local current_row = 0
-        for i = 0, count-1 do
-            table.insert(tab, {
-                region.x + gaps / 2 + (current_row * x_offset),
-                region.y + gaps / 2 + (current_col * y_offset),
-                width - gaps,
-                height - gaps,
-            })
+    local width = (region.width / cols)
+    local height = (region.height / rows)
+    local x_offset = width
+    local y_offset = height
 
-            if current_col < rows - 1 then
-                current_col = current_col + 1
-            else
-                current_col = 0
-                current_row = current_row + 1
-            end
+    local current_col = 0
+    local current_row = 0
+    for _ = 0, count - 1 do
+        table.insert(tab, {
+            region.x + gaps / 2 + (current_row * x_offset),
+            region.y + gaps / 2 + (current_col * y_offset),
+            width - gaps,
+            height - gaps,
+        })
+
+        if current_col < rows - 1 then
+            current_col = current_col + 1
+        else
+            current_col = 0
+            current_row = current_row + 1
         end
+    end
 
-        return tab
-    end,
-}
+    return tab
+end
 
 return M

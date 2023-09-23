@@ -1,5 +1,3 @@
-local utils = require('utils')
-
 local copy = {
     x = 0,
     y = 0,
@@ -7,19 +5,35 @@ local copy = {
     height = 0,
 }
 
+---@class Region
+---@field children? Region[]
+---@field gaps number # Gap size between windows in pixels (default = `0`)
+---@field height? number # Height of the region
+---@field last boolean # Indicates if this region should fill after other regions have taken their windows (default = `false`)
+---@field max? number # Maximum number of windows this region should take
+---@field min? number # Minimum number of windows this region should take before taking any windows
+---@field parent? Region
+---@field sublayout string # Sublayout used to position the windows of this region
+---@field width? number # Width of the region
+---@field x? number # X position of the region
+---@field y? number # Y position of the region
 local Region = {
     sublayout = "fill",
     gaps = 0,
 }
 
--- Create a new (empty!) region object
+
+---Create a new (empty!) `Region`. Not expected to be used in layouts.
+---@return Region
 function Region:new()
     local new = {}
     setmetatable(new, self)
     return new
 end
 
--- Create a region from the args object given to handle_layout
+---Create a `Region` from the args object given to handle_layout. Typically only used for the top level `Region`.
+---@param args LuaArgs
+---@return Region
 function Region:from_args(args)
     local new = Region:new()
 
@@ -30,7 +44,12 @@ function Region:from_args(args)
     return new
 end
 
--- Create a region as a sub area of an existing region
+---Create a region as a sub area of an existing `Region`. Adds the new `Region` as a child to the existing `Region`.
+---@param x number X position in pixels
+---@param y number Y position in pixels
+---@param width number Width in pixels
+---@param height number Height in pixels
+---@return Region
 function Region:from(x, y, width, height)
     local new = Region:new()
 
@@ -53,6 +72,9 @@ function Region:from(x, y, width, height)
     return new
 end
 
+---Set the size of gaps between windows in the `Region` and moves/resizes the `Region` to introduce gaps between different regions.
+---@param gaps number # Size of gaps in pixels.
+---@return Region # Returns itself.
 function Region:set_gaps(gaps)
     self.gaps = gaps
 
@@ -66,6 +88,12 @@ function Region:set_gaps(gaps)
     return self
 end
 
+---Set the sublayout of the `Region` and any relevant window limits.
+---
+---@param sublayout string # Sub-layout as found in the `sublayouts` module.
+---@param limits? {[1]: number, [2]: number} # {min, max}
+---@return Region # Returns itself.
+---@see sublayouts.lua
 function Region:set_layout(sublayout, limits)
     self.sublayout = sublayout
 
@@ -77,6 +105,8 @@ function Region:set_layout(sublayout, limits)
     return self
 end
 
+---Get the number of windows needed to fill this `Region's` direct child `Regions`.
+---@return number Total of all children's minimums
 function Region:min_children()
     local min = 0
     if self.children ~= nil then
@@ -87,11 +117,18 @@ function Region:min_children()
     return min
 end
 
+---Mark this region to be filled last
+---@return Region # Returns itself.
 function Region:fill_last()
     self.last = true
     return self
 end
 
+---Populate the `Region` with windows. Recursively populates children if there are enough windows to fill them.
+---@param count number # Number of windows left to be positioned.
+---@param config Config # Config options for this output/tag/layout.
+---@param wins? WinData[] # Existing window positioning data.
+---@return number, WinData[] # Returns remaining number of windows and window positioning data.
 function Region:populate(count, config, wins)
     local wins = wins or {}
     local sublayouts = require('sublayouts')
@@ -212,7 +249,7 @@ function Region:print(indent)
 
     print('Region (' .. tostring(self) .. ') {')
 
-    for k, v in pairs(keys) do
+    for _, v in pairs(keys) do
         print(pre .. '  ' .. v .. ' = ' .. tostring(self[v]) .. ',')
     end
     if self.parent then

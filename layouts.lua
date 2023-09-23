@@ -117,32 +117,6 @@ local layouts = {
         local _, wins = c:populate(args.count, config)
         return wins
     end,
-
-    test = function(args, config)
-        local main_ratio = config.main_ratio
-        local secondary_ratio = config.secondary_ratio
-        local secondary_count = config.secondary_count
-
-        local c = Region:from_args(args):set_layout("cols")
-
-        if not (config.smart_gaps and args.count < 2) then
-            c:set_gaps(config.gaps)
-        end
-
-        local main = c:from(0.5 - main_ratio / 2, 0, main_ratio, 1):set_layout("fill", {nil, 1}):set_gaps(0)
-
-        local left = c:from(0, 0, 0.5 - main_ratio / 2, 1):set_layout("rows", {1,secondary_count + 2}):set_gaps(config.gaps)
-
-        local right = c:from(0.5 + main_ratio / 2, 0, 0.5 - main_ratio / 2, 1):set_layout("rows"):fill_last():set_gaps(0)
-
-        if secondary_count ~= 0 then
-            local left_top = left:from(0, 0, 1, secondary_ratio):set_layout("rows", {secondary_count, secondary_count})
-            local left_btm = left:from(0, secondary_ratio, 1, 1 - secondary_ratio):set_layout("rows",{1, 2}):fill_last()
-        end
-
-        local _, wins = c:populate(args.count, config)
-        return wins
-    end,
 }
 
 return layouts
