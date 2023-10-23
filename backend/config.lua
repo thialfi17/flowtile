@@ -1,3 +1,4 @@
+local u = require("backend.utils")
 ---@alias Config {[string]: any}
 
 local config = {}
@@ -209,6 +210,7 @@ config.get = function(args)
         end
     end
 
+    u.log(ERROR, table.concat({"Could not find a configured value for the option: '\27[33m", opt, "\27[0m'. Did you forget to set it?"}))
     return nil
 end
 

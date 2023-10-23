@@ -1,3 +1,17 @@
+---@class LogLevel
+---@field val integer
+---@field text string
+
+---@type LogLevel
+INFO  = {val = 0, text = "\27[32mINFO"}
+---@type LogLevel
+WARN  = {val = 1, text = "\27[31mWARNING"}
+---@type LogLevel
+ERROR = {val = 2, text = "\27[33mERROR"}
+
+---@type LogLevel
+local LOG_LEVEL = INFO
+
 local M = {}
 
 M.weakref = function(o)
@@ -36,6 +50,20 @@ M.table.print = function(t, indent, nest)
         end
     end
     print(pre .. '},')
+end
+
+---@param level LogLevel
+---@param message string
+M.log = function (level, message)
+    if level.val < LOG_LEVEL.val then return end
+
+    local longest = math.max(#INFO.text, #WARN.text, #ERROR.text)
+    local pad = string.rep(" ", longest - #level.text)
+    print(table.concat({"[", level.text, "\27[0m] ", pad, message}))
+end
+---@param level LogLevel
+M.set_log_level = function (level)
+    LOG_LEVEL = level
 end
 
 return M
