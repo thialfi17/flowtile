@@ -25,7 +25,13 @@ require("user_settings")
 ---@field [3] number # The width of the window
 ---@field [4] number # The height of the window
 
----@alias LuaArgs {tags: number, count: number, width: number, height: number, output: string} Arguments provided by luatile to determine the window layout
+---@class LuaArgs
+---@field tags number # The selected tags
+---@field count number # The number of windows on the selected tags
+---@field width number # The width of the output
+---@field height number # The height of the output
+---@field output string # The selected output
+---Arguments provided by luatile to determine the window layout
 
 ---Function that is called by luatile to handle the layout.
 ---@param args LuaArgs

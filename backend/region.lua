@@ -5,6 +5,42 @@ local copy = {
     height = 0,
 }
 
+---@return number, WinData[] # Returns remaining number of windows and window positioning data.
+local fill_from_list = function(list_of_children, remaining_wins, regions, config)
+    if regions == 0 then return regions, {} end
+    local win_positions = {}
+    local fill_with = math.floor(remaining_wins / regions)
+    local extra = math.fmod(remaining_wins, regions)
+
+    for _, child in pairs(list_of_children) do
+        local target = fill_with
+        if extra ~= 0 then
+            target = target + 1
+            extra = extra - 1
+        end
+
+        local positions = child:populate(target, config)
+
+        for p = 1, #positions do
+            win_positions[#win_positions+1] = positions[p]
+        end
+
+        regions = regions - 1
+
+        -- Handle case where number of generated positions doesn't match
+        -- with number requested
+        local diff = #positions - target
+        if diff ~= 0 then
+            remaining_wins = remaining_wins - #positions
+            fill_with = math.floor(remaining_wins / regions)
+            extra = math.fmod(remaining_wins, regions)
+        end
+
+    end
+
+    return regions, win_positions
+end
+
 ---@class Region
 ---@field children? Region[]
 ---@field gaps number # Gap size between windows in pixels (default = `0`)
@@ -125,37 +161,47 @@ function Region:fill_last()
 end
 
 ---Populate the `Region` with windows. Recursively populates children if there are enough windows to fill them.
----@param count number # Number of windows left to be positioned.
+---@param requested_windows number # Number of windows left to be positioned.
 ---@param config Config # Config options for this output/tag/layout.
----@param wins? WinData[] # Existing window positioning data.
----@return number, WinData[] # Returns remaining number of windows and window positioning data.
-function Region:populate(count, config, wins)
-    local wins = wins or {}
+---@return WinData[] # Returns remaining number of windows and window positioning data.
+function Region:populate(requested_windows, config)
     local sublayouts = require('sublayouts')
+    local win_positions = {}
 
-    local handled_windows
-    if self.max ~= nil and count > self.max then
-        handled_windows = self.max
+    local remaining_wins
+    if self.max ~= nil and requested_windows > self.max then
+        remaining_wins = self.max
     else
-        handled_windows = count
-    end
-    local remaining = count - handled_windows
-
-    if self.children == nil then
-        return remaining, sublayouts[self.sublayout](wins, self, handled_windows, config)
+        remaining_wins = requested_windows
     end
 
-    -- Not enough windows to flow down into children
-    if count < self:min_children() then
-        return remaining, sublayouts[self.sublayout](wins, self, count, config)
+    -- If this region doesn't have children and is just a sublayout
+    -- then generate the positioning information
+    --   OR
+    -- Not enough windows to flow down into children so fallback
+    -- to default layout for this region
+    if self.children == nil or requested_windows < self:min_children() then
+        win_positions = sublayouts[self.sublayout](self, remaining_wins, config)
+
+        -- Number of generated positions could be different from
+        -- max number of windows we are meant to support so remove
+        -- extras.
+        local max = self.max or #win_positions
+        local difference = #win_positions - max
+        for _ = 1, difference, 1 do
+            table.remove(win_positions)
+        end
+
+        return win_positions
     end
 
     -- Distribute remaining windows between children
+    remaining_wins = requested_windows
     local fill_last = {}
     local fill_by_count = {}
     local fill_remaining = {}
 
-    local total = 0
+    local not_last_regions = 0
 
     for _, child in pairs(self.children) do
         if child.last == true then
@@ -167,56 +213,54 @@ function Region:populate(count, config, wins)
             if child.max == nil then
                 table.insert(fill_remaining, child)
             end
-            total = total + 1
+            not_last_regions = not_last_regions + 1
         end
     end
 
-    local fill_from_list = function(tab, total)
-        if total == 0 then return total end
-        local fill_with = math.floor(count / total)
-        local extra = math.fmod(count, total)
-
-        for i, child in pairs(tab) do
-            if i <= extra then
-                remaining, wins = child:populate(fill_with + 1, config, wins)
-                count = count - (fill_with + 1 - remaining)
-            else
-                remaining, wins = child:populate(fill_with, config, wins)
-                count = count - (fill_with - remaining)
-            end
-            total = total - 1
-        end
-
-        return total
-    end
-
-    count = count - #fill_last
-
-    local fill_with = 1
-    while total ~= 0 and (fill_with * total < count) do
-        local remove = {}
-        for i, child in pairs(fill_by_count) do
-            if fill_with >= child.max then
-                remaining, wins = child:populate(fill_with, config, wins)
-                count = count - (fill_with - remaining)
-                total = total - 1
-                table.insert(remove, 1, i)
-            end
-        end
-        for _, i in pairs(remove) do table.remove(fill_by_count, i) end
-        fill_with = fill_with + 1
-    end
+    --local fill_with = 1
+    --while total ~= 0 and (fill_with * total < remaining_wins) do
+    --    local remove = {}
+    --    for i, child in pairs(fill_by_count) do
+    --        if fill_with >= child.max then
+    --            remaining, win_positions = child:populate(fill_with, config, win_positions)
+    --            remaining_wins = remaining_wins - (fill_with - remaining)
+    --            total = total - 1
+    --            table.insert(remove, 1, i)
+    --        end
+    --    end
+    --    for _, i in pairs(remove) do table.remove(fill_by_count, i) end
+    --    fill_with = fill_with + 1
+    --end
 
     -- TODO: Go back to treating fill_by_count as a dict not an array
-    total = fill_from_list(fill_by_count, total)
-    total = fill_from_list(fill_remaining, total)
+    local positions = {}
 
-    count = count + #fill_last
+    not_last_regions, positions = fill_from_list(fill_by_count, remaining_wins - #fill_last, not_last_regions, config)
+    remaining_wins = remaining_wins - #positions
+
+    win_positions = positions
+
+    not_last_regions, positions = fill_from_list(fill_remaining, remaining_wins - #fill_last, not_last_regions, config)
+    remaining_wins = remaining_wins - #positions
+
+    for i = 1, #positions do
+        win_positions[#win_positions+1] = positions[i]
+    end
 
     -- Evenly split remaining windows between remaining regions
-    fill_from_list(fill_last, #fill_last)
+    _, positions = fill_from_list(fill_last, remaining_wins, #fill_last, config)
 
-    return count, wins
+    for i = 1, #positions do
+        win_positions[#win_positions+1] = positions[i]
+    end
+
+    if not self.parent then
+        while #win_positions > requested_windows do
+            table.remove(win_positions)
+        end
+    end
+
+    return win_positions
 end
 
 function Region:__index(k)
@@ -259,7 +303,7 @@ function Region:print(indent)
         print(pre .. '  children = {')
         for k, v in pairs(self.children) do
             io.write(pre .. '    ' .. k .. ' = ')
-            v:print(4)
+            v:print(indent+4)
         end
         print(pre .. '  },')
     end

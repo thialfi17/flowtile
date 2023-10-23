@@ -1,4 +1,4 @@
-local Region = require("region")
+local Region = require("backend/region")
 
 local layouts = {
 
@@ -19,7 +19,7 @@ local layouts = {
             r:set_gaps(config.gaps)
         end
 
-        local _, wins = r:populate(args.count, config)
+        local wins = r:populate(args.count, config)
         return wins
     end,
 
@@ -28,7 +28,7 @@ local layouts = {
 
         r:set_gaps(config.gaps)
 
-        local _, wins = r:populate(args.count, config)
+        local wins = r:populate(args.count, config)
         return wins
     end,
 
@@ -39,7 +39,7 @@ local layouts = {
             r:set_gaps(config.gaps)
         end
 
-        local _, wins = r:populate(args.count, config)
+        local wins = r:populate(args.count, config)
         return wins
     end,
 
@@ -70,7 +70,7 @@ local layouts = {
             sub:set_layout(tertiary_sublayout, {1, nil})
         end
 
-        local _, wins = r:populate(args.count, config)
+        local wins = r:populate(args.count, config)
         return wins
     end,
 
@@ -114,7 +114,7 @@ local layouts = {
             local right = c:from(main_offset + main_width, 0, main_offset, c.height):set_layout(secondary_sublayout, {1, nil})
         end
 
-        local _, wins = c:populate(args.count, config)
+        local wins = c:populate(args.count, config)
         return wins
     end,
 }

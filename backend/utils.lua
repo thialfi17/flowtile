@@ -10,7 +10,7 @@ WARN  = {val = 1, text = "\27[31mWARNING"}
 ERROR = {val = 2, text = "\27[33mERROR"}
 
 ---@type LogLevel
-local LOG_LEVEL = INFO
+local LOG_LEVEL = ERROR
 
 local M = {}
 
