@@ -192,6 +192,12 @@ function Region:populate(requested_windows, config)
             table.remove(win_positions)
         end
 
+        if not self.parent then
+            while #win_positions > requested_windows do
+                table.remove(win_positions)
+            end
+        end
+
         return win_positions
     end
 
