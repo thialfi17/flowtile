@@ -90,7 +90,10 @@ end
 ---with `config.grid_ratio`.
 ---
 ---Can return more positions than the count given.
+-- TODO: would be nice if it would automatically fill empty space
 M.grid = function(region, count, config)
+    if count == 0 then return {} end
+
     local gaps = region.gaps
     local factor = config.grid_ratio
     local closest_factor = nil

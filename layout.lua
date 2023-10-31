@@ -58,6 +58,8 @@ TODO: Documentation!
 TODO: Clean up unused functions/features
 TODO: Standardize function interfaces
 
+TODO: cleanup hierarchy changes
+TODO: add window position order info to regions to make moving up and down window stack follow intended region hierarchy
 TODO: Can gaps be changed so that if children don't have gaps then they are flush with the edges?
 
 --]]

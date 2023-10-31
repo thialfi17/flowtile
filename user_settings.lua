@@ -4,9 +4,10 @@ require("backend/config")
 --   User Options   --
 ----------------------
 
+set_global("main_ratio",      0.6, 0.1, 0.9)
+set_global("main_count",      1,   0,   nil)
 set_global("secondary_ratio", 0.6, 0.1, 0.9)
 set_global("secondary_count", 1,   0,   nil)
-set_global("main_ratio",      0.6, 0.1, 0.9)
 
 set_global("secondary_sublayout", "grid")
 set_global("tertiary_sublayout",  "stack")

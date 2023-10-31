@@ -20,14 +20,10 @@ M.weakref = function(o)
 end
 
 M.table = {}
-M.table.copy = function(t)
+M.table.shallow_copy = function(t)
     local t2 = {}
     for k, v in pairs(t) do
-        if type(v) == 'table' then
-            t2[k] = table.copy(v)
-        else
-            t2[k] = v
-        end
+        t2[k] = v
     end
     return t2
 end

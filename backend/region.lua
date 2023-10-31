@@ -1,3 +1,4 @@
+local Hier = require("backend.hierarchy")
 local copy = {
     x = 0,
     y = 0,
@@ -62,7 +63,9 @@ local Region = {
 ---Create a new (empty!) `Region`. Not expected to be used in layouts.
 ---@return Region
 function Region:new()
-    local new = {}
+    local new = {
+        hierarchy = Hier:new(),
+    }
     setmetatable(new, self)
     return new
 end
@@ -103,7 +106,7 @@ function Region:from(x, y, width, height)
     new.parent = self
 
     self.children = self.children or {}
-    table.insert(self.children, new) -- this can be made a weak reference if needed but I'm not sure it is
+    table.insert(self.children, new)
 
     return new
 end
@@ -134,29 +137,14 @@ function Region:set_layout(sublayout, limits)
     self.sublayout = sublayout
 
     if limits ~= nil then
-        self.min = limits[1]
+        self.min = limits[1] or 0
         self.max = limits[2]
-    end
 
-    return self
-end
-
----Get the number of windows needed to fill this `Region's` direct child `Regions`.
----@return number Total of all children's minimums
-function Region:min_children()
-    local min = 0
-    if self.children ~= nil then
-        for _, child in pairs(self.children) do
-            min = min + child.min
+        if self.max and self.min > self.max then
+            self.max = self.min
         end
     end
-    return min
-end
 
----Mark this region to be filled last
----@return Region # Returns itself.
-function Region:fill_last()
-    self.last = true
     return self
 end
 
@@ -167,6 +155,8 @@ end
 function Region:populate(requested_windows, config)
     local sublayouts = require('sublayouts')
     local win_positions = {}
+
+    print("populating (r: " .. requested_windows .. ", region: " .. tostring(self) .. ")")
 
     local remaining_wins
     if self.max ~= nil and requested_windows > self.max then
@@ -180,7 +170,8 @@ function Region:populate(requested_windows, config)
     --   OR
     -- Not enough windows to flow down into children so fallback
     -- to default layout for this region
-    if self.children == nil or requested_windows < self:min_children() then
+    print(self.hierarchy:get_min())
+    if self.children == nil or requested_windows < self.hierarchy:get_min() then
         win_positions = sublayouts[self.sublayout](self, remaining_wins, config)
 
         -- Number of generated positions could be different from
@@ -203,62 +194,8 @@ function Region:populate(requested_windows, config)
 
     -- Distribute remaining windows between children
     remaining_wins = requested_windows
-    local fill_last = {}
-    local fill_by_count = {}
-    local fill_remaining = {}
 
-    local not_last_regions = 0
-
-    for _, child in pairs(self.children) do
-        if child.last == true then
-            table.insert(fill_last, child)
-        else
-            if child.max ~= nil and child.max ~= 0 then
-                table.insert(fill_by_count, child)
-            end
-            if child.max == nil then
-                table.insert(fill_remaining, child)
-            end
-            not_last_regions = not_last_regions + 1
-        end
-    end
-
-    --local fill_with = 1
-    --while total ~= 0 and (fill_with * total < remaining_wins) do
-    --    local remove = {}
-    --    for i, child in pairs(fill_by_count) do
-    --        if fill_with >= child.max then
-    --            remaining, win_positions = child:populate(fill_with, config, win_positions)
-    --            remaining_wins = remaining_wins - (fill_with - remaining)
-    --            total = total - 1
-    --            table.insert(remove, 1, i)
-    --        end
-    --    end
-    --    for _, i in pairs(remove) do table.remove(fill_by_count, i) end
-    --    fill_with = fill_with + 1
-    --end
-
-    -- TODO: Go back to treating fill_by_count as a dict not an array
-    local positions = {}
-
-    not_last_regions, positions = fill_from_list(fill_by_count, remaining_wins - #fill_last, not_last_regions, config)
-    remaining_wins = remaining_wins - #positions
-
-    win_positions = positions
-
-    not_last_regions, positions = fill_from_list(fill_remaining, remaining_wins - #fill_last, not_last_regions, config)
-    remaining_wins = remaining_wins - #positions
-
-    for i = 1, #positions do
-        win_positions[#win_positions+1] = positions[i]
-    end
-
-    -- Evenly split remaining windows between remaining regions
-    _, positions = fill_from_list(fill_last, remaining_wins, #fill_last, config)
-
-    for i = 1, #positions do
-        win_positions[#win_positions+1] = positions[i]
-    end
+    win_positions = self.hierarchy:fill_levels(remaining_wins, config)
 
     if not self.parent then
         while #win_positions > requested_windows do
@@ -270,16 +207,9 @@ function Region:populate(requested_windows, config)
 end
 
 function Region:__index(k)
-    local dont_inherit = { children = true, parent = true, last = true }
-    -- Otherwise special handling to calculate values from parent
-    if k == 'min' then
-        local min = self:min_children()
-        if min == 0 then
-            return 1
-        else
-            return min
-        end
-    elseif dont_inherit[k] then
+    local dont_inherit = { hierarchy = true, children = true, parent = true, last = true }
+
+    if dont_inherit[k] then
         return nil
     end
 
@@ -295,7 +225,7 @@ function Region:print(indent)
     indent = indent or 0
     local pre = string.rep(' ', indent)
 
-    keys = {'x', 'y', 'width', 'height', 'sublayout', 'min', 'max', 'last'}
+    keys = {'x', 'y', 'width', 'height', 'sublayout', 'min', 'max', 'hierarchy', 'last'}
 
     print('Region (' .. tostring(self) .. ') {')
 
