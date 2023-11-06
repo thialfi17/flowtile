@@ -1,5 +1,10 @@
+---@class Hierarchy
+---@field levels Level[]
 local Hierarchy = {}
-local Level = {}
+
+---@class Level
+---@field regions Region[]
+local Level = { }
 
 function Level:new()
     local new = {
@@ -9,6 +14,7 @@ function Level:new()
     return new
 end
 
+---@param region Region
 function Level:add(region)
     table.insert(self.regions, region)
 end
@@ -17,6 +23,7 @@ function Level:__index(k)
     return rawget(Level, k)
 end
 
+---@return self
 function Hierarchy:new()
     local new = {
         levels = {},
@@ -27,6 +34,7 @@ function Hierarchy:new()
     return new
 end
 
+---@return self
 function Hierarchy:next_level()
     self.cur_level = self.cur_level + 1
 
@@ -37,11 +45,15 @@ function Hierarchy:next_level()
     return self
 end
 
+---@param region Region
+---@return self
 function Hierarchy:add(region)
     self.levels[#self.levels]:add(region)
     return self
 end
 
+---@param level integer
+---@return integer
 function Hierarchy:level_min(level)
     local count = 0
 
@@ -52,6 +64,8 @@ function Hierarchy:level_min(level)
     return count
 end
 
+---@param level integer
+---@return integer
 function Hierarchy:level_max(level)
     local count = 0
 
@@ -62,6 +76,8 @@ function Hierarchy:level_max(level)
     return count
 end
 
+---@param start? integer
+---@return integer
 function Hierarchy:get_min(start)
     local min = 0
     start = start or 1
@@ -72,13 +88,11 @@ function Hierarchy:get_min(start)
 end
 
 function Hierarchy:fill_level(sel_level, remaining_windows, config)
-    print("filling level: " .. sel_level)
     local win_positions = {}
 
     local reserved_windows = self:get_min(sel_level + 1)
     local usable_windows = remaining_windows - reserved_windows
 
-    print("usable: " .. usable_windows)
     local level = self.levels[sel_level]
 
     local regions = require("backend.utils").table.shallow_copy(level.regions)

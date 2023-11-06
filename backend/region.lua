@@ -54,6 +54,7 @@ end
 ---@field width? number # Width of the region
 ---@field x? number # X position of the region
 ---@field y? number # Y position of the region
+---@field hierarchy Hierarchy
 local Region = {
     sublayout = "fill",
     gaps = 0,
@@ -83,7 +84,8 @@ function Region:from_args(args)
     return new
 end
 
----Create a region as a sub area of an existing `Region`. Adds the new `Region` as a child to the existing `Region`.
+---Create a region as a sub area of an existing `Region`.
+---Adds the new `Region` as member of the current `Hierarchy` tier.
 ---@param x number X position in pixels
 ---@param y number Y position in pixels
 ---@param width number Width in pixels
@@ -108,7 +110,16 @@ function Region:from(x, y, width, height)
     self.children = self.children or {}
     table.insert(self.children, new)
 
+    self.hierarchy:add(new)
+
     return new
+end
+
+---Move the internal `Hierarchy` to the next tier
+---@return self
+function Region:next_tier()
+    self.hierarchy:next_level()
+    return self
 end
 
 ---Set the size of gaps between windows in the `Region` and moves/resizes the `Region` to introduce gaps between different regions.

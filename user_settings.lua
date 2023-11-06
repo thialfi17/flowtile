@@ -5,7 +5,8 @@ require("backend/config")
 ----------------------
 
 set_global("main_ratio",      0.6, 0.1, 0.9)
-set_global("main_count",      1,   0,   nil)
+set_global("main_count",      1,   1,   nil) -- Doesn't make sense not to have at least one main window
+set_global("main_layout", "grid")
 set_global("secondary_ratio", 0.6, 0.1, 0.9)
 set_global("secondary_count", 1,   0,   nil)
 
