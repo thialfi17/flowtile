@@ -6,6 +6,8 @@ local Hierarchy = {}
 ---@field regions Region[]
 local Level = { }
 
+---Return a new `Level` 
+---@return self
 function Level:new()
     local new = {
         regions = {},
@@ -14,6 +16,7 @@ function Level:new()
     return new
 end
 
+---Add a `Region` to the level of the `Hierarchy`
 ---@param region Region
 function Level:add(region)
     table.insert(self.regions, region)
@@ -23,6 +26,7 @@ function Level:__index(k)
     return rawget(Level, k)
 end
 
+---Return a new `Hierarchy` with an empty level
 ---@return self
 function Hierarchy:new()
     local new = {
@@ -34,6 +38,8 @@ function Hierarchy:new()
     return new
 end
 
+---Add a new level to the `Hierarchy` if the next one does not exist
+---and then select it.
 ---@return self
 function Hierarchy:next_level()
     self.cur_level = self.cur_level + 1
@@ -45,6 +51,7 @@ function Hierarchy:next_level()
     return self
 end
 
+---Add a `Region` to the `Hierarchy` at  the current level.
 ---@param region Region
 ---@return self
 function Hierarchy:add(region)
@@ -52,6 +59,8 @@ function Hierarchy:add(region)
     return self
 end
 
+---Get the minimum number of windows needed to satisfy all of the
+---minimum requirements of the member `Regions` for the given level.
 ---@param level integer
 ---@return integer
 function Hierarchy:level_min(level)
@@ -64,6 +73,8 @@ function Hierarchy:level_min(level)
     return count
 end
 
+---Get the maximum number of windows needed to satisfy all of the
+---maximum requirements of the member `Regions` for the given level.
 ---@param level integer
 ---@return integer
 function Hierarchy:level_max(level)
@@ -76,6 +87,8 @@ function Hierarchy:level_max(level)
     return count
 end
 
+---Get the minimum number of windows needed to satisfy all of the
+---minimum requirements for the member `Regions` for all levels.
 ---@param start? integer
 ---@return integer
 function Hierarchy:get_min(start)
@@ -87,15 +100,19 @@ function Hierarchy:get_min(start)
     return min
 end
 
-function Hierarchy:fill_level(sel_level, remaining_windows, config)
+---@param level integer # The level of the hierarchy to fill
+---@param remaining_windows integer # The number of remaining windows positions to produce
+---@param config Config # The configuration object. This is passed to the `populate` method of the `Regions`
+---@return WinData[]
+function Hierarchy:fill_level(level, remaining_windows, config)
     local win_positions = {}
 
-    local reserved_windows = self:get_min(sel_level + 1)
+    local reserved_windows = self:get_min(level + 1)
     local usable_windows = remaining_windows - reserved_windows
 
-    local level = self.levels[sel_level]
+    local cur_level = self.levels[level]
 
-    local regions = require("backend.utils").table.shallow_copy(level.regions)
+    local regions = require("backend.utils").table.shallow_copy(cur_level.regions)
     local last = false
 
     while usable_windows > 0 and #regions > 0 do
@@ -128,6 +145,10 @@ function Hierarchy:fill_level(sel_level, remaining_windows, config)
     return win_positions
 end
 
+---Attempt to fill all of the levels of the `Hierarchy`.
+---@param remaining_windows integer # The number of remaining windows positions to produce
+---@param config Config # The configuration object. This is passed to the `populate` method of the `Regions`
+---@return WinData[]
 function Hierarchy:fill_levels(remaining_windows, config)
     local win_positions = {}
 

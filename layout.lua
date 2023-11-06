@@ -35,7 +35,7 @@ require("user_settings")
 
 ---Function that is called by luatile to handle the layout.
 ---@param args LuaArgs
----@return WinData[] wins Array of window positions and dimenions
+---@return WinData[] wins Array of window positions and dimensions
 function handle_layout(args)
     local layout = config.get({
         output = args.output,
