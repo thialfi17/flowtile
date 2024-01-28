@@ -36,7 +36,7 @@ set_global("smart_gaps", true)
 set_global("main_ratio", 0.6, 0.1, 0.9)
 ```
 
-More advanced configuration is described below in [Advanced Configuration].
+More advanced configuration is described below in [Advanced Configuration](#Advanced-Configuration).
 
 There is currently no list of options or good way to get the options that are
 supported without manually checking what is used in the code. Most options are
