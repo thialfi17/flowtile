@@ -49,6 +49,7 @@ end
 ---@field last boolean # Indicates if this region should fill after other regions have taken their windows (default = `false`)
 ---@field max? number # Maximum number of windows this region should take
 ---@field min? number # Minimum number of windows this region should take before taking any windows
+---@field name string # Region name - used for debugging
 ---@field parent? Region
 ---@field sublayout string # Sublayout used to position the windows of this region
 ---@field width? number # Width of the region
@@ -56,15 +57,18 @@ end
 ---@field y? number # Y position of the region
 ---@field hierarchy Hierarchy
 local Region = {
+    name = "",
     sublayout = "fill",
     gaps = 0,
 }
 
 
 ---Create a new (empty!) `Region`. Not expected to be used in layouts.
+---@param name string Region name - used for debugging
 ---@return Region
-function Region:new()
+function Region:new(name)
     local new = {
+        name = name,
         hierarchy = Hier:new(),
     }
     setmetatable(new, self)
@@ -72,10 +76,11 @@ function Region:new()
 end
 
 ---Create a `Region` from the args object given to handle_layout. Typically only used for the top level `Region`.
+---@param name string Region name - used for debugging
 ---@param args LuaArgs
 ---@return Region
-function Region:from_args(args)
-    local new = Region:new()
+function Region:from_args(name, args)
+    local new = Region:new(name)
 
     for k, v in pairs(copy) do
         new[k] = args[k] or v
@@ -86,13 +91,14 @@ end
 
 ---Create a region as a sub area of an existing `Region`.
 ---Adds the new `Region` as member of the current `Hierarchy` tier.
+---@param name string Region name
 ---@param x number X position in pixels
 ---@param y number Y position in pixels
 ---@param width number Width in pixels
 ---@param height number Height in pixels
 ---@return Region
-function Region:from(x, y, width, height)
-    local new = Region:new()
+function Region:from(name, x, y, width, height)
+    local new = Region:new(name)
 
     if x + width > self.width then
         print("Sub-region X ends outside of bounds!")
@@ -168,7 +174,7 @@ function Region:populate(requested_windows, config)
     local win_positions = {}
 
     local u = require("backend.utils")
-    u.log(DEBUG, table.concat({"populating (r: ", requested_windows, ", region: ", tostring(self), ")"}))
+    u.log(DEBUG, table.concat({"populating region: ", self.name, " (r: ", requested_windows, ", region: ", tostring(self), ")"}))
 
     local remaining_wins
     if self.max ~= nil and requested_windows > self.max then
