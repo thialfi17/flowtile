@@ -3,6 +3,8 @@
 ---@field text string
 
 ---@type LogLevel
+DEBUG  = {val = -1, text = "\27[34mDEBUG"}
+---@type LogLevel
 INFO  = {val = 0, text = "\27[32mINFO"}
 ---@type LogLevel
 WARN  = {val = 1, text = "\27[31mWARNING"}
@@ -10,7 +12,7 @@ WARN  = {val = 1, text = "\27[31mWARNING"}
 ERROR = {val = 2, text = "\27[33mERROR"}
 
 ---@type LogLevel
-local LOG_LEVEL = ERROR
+LOG_LEVEL = ERROR
 
 local M = {}
 
@@ -53,7 +55,7 @@ end
 M.log = function (level, message)
     if level.val < LOG_LEVEL.val then return end
 
-    local longest = math.max(#INFO.text, #WARN.text, #ERROR.text)
+    local longest = math.max(#DEBUG.text, #INFO.text, #WARN.text, #ERROR.text)
     local pad = string.rep(" ", longest - #level.text)
     print(table.concat({"[", level.text, "\27[0m] ", pad, message}))
 end

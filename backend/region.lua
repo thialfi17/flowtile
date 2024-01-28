@@ -167,7 +167,8 @@ function Region:populate(requested_windows, config)
     local sublayouts = require('sublayouts')
     local win_positions = {}
 
-    print("populating (r: " .. requested_windows .. ", region: " .. tostring(self) .. ")")
+    local u = require("backend.utils")
+    u.log(DEBUG, table.concat({"populating (r: ", requested_windows, ", region: ", tostring(self), ")"}))
 
     local remaining_wins
     if self.max ~= nil and requested_windows > self.max then
@@ -181,7 +182,6 @@ function Region:populate(requested_windows, config)
     --   OR
     -- Not enough windows to flow down into children so fallback
     -- to default layout for this region
-    print(self.hierarchy:get_min())
     if self.children == nil or requested_windows < self.hierarchy:get_min() then
         win_positions = sublayouts[self.sublayout](self, remaining_wins, config)
 

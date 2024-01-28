@@ -1,8 +1,8 @@
-require("backend/config")
-
 ----------------------
 --   User Options   --
 ----------------------
+
+set_global("per-layout-config", true)
 
 set_global("main_ratio",      0.6, 0.1, 0.9)
 set_global("main_count",      1,   1,   nil) -- Doesn't make sense not to have at least one main window
@@ -24,3 +24,8 @@ set_global("layout", "main_with_stack")
 
 set_global("max_offset",    30,   0, nil)
 set_global("grid_ratio",  16/9, 1/3, 3/1)
+
+
+-----------------------
+--    Tag Options    --
+-----------------------

@@ -122,6 +122,10 @@ end
 ---@param args {output?: string, tag?: number|string, layout?: string, opt: string}
 ---@return any val
 config.get = function(args)
+    if type(args) ~= "table" then
+        u.log(ERROR, table.concat({"Expected a 'table' argument but instead got ", type(args)}))
+    end
+
     local sel_out = args.output
     local sel_tag = args.tag
     local sel_lay = args.layout
@@ -210,7 +214,7 @@ config.get = function(args)
         end
     end
 
-    u.log(ERROR, table.concat({"Could not find a configured value for the option: '\27[33m", opt, "\27[0m'. Did you forget to set it?"}))
+    u.log(ERROR, table.concat({"Could not find a configured value for the option: '\27[33m", opt or "nil", "\27[0m'. Did you forget to set it?"}, ""))
     return nil
 end
 
@@ -256,127 +260,6 @@ config.reset = function(sel_out, sel_tag, sel_lay)
     if not tag then return end
 
     tag[sel_lay] = nil
-end
-
---[[
-
-    NOTE: These functions are global which means they are all callable as a
-    layout command. When a layout command is called the global variables
-    CMD_OUTPUT and CMD_TAGS are set to the current output and the current tag
-    respectively.
-
---]]
-
----Set the value of an option for the current output and tag and optionally provide upper and lower
----bounds. If the 'per-layout-config' is set option is set for the current layout.
----
----@param opt string Option name
----@param val any Option value
----@param min? number Lower bound for 'number' option value
----@param max? number Upper bound for 'number' option value
-function set(opt, val, min, max)
-    local layout = config.get({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        opt = "layout"
-    })
-    if opt == "layout" or not config.get({ opt = "per-layout-config" }) then
-        layout = nil
-    end
-
-    config.set({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        layout = layout,
-        opt = opt,
-        val = val,
-        min = min,
-        max = max
-    })
-end
-
-function inc(opt, val)
-    local layout = config.get({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        opt = "layout"
-    })
-    if opt == "layout" or not config.get({ opt = "per-layout-config" }) then
-        layout = nil
-    end
-
-    config.inc({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        layout = layout,
-        opt = opt,
-        val = val
-    })
-end
-
----Get the value of an option for the current output and tag. If the 'per-layout-config' option is
----set, the value of the option for the currentl layout is returned.
----@return any # The value of the option
-function get(opt)
-    local layout = config.get({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        opt = "layout"
-    })
-    if opt == "layout" or not config.get({ opt = "per-layout-config" }) then
-        layout = nil
-    end
-
-    return config.get({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        layout = layout,
-        opt = opt
-    })
-end
-
----Reset the options for the currently selected output and tag (and layout if 'per-layout-config' is
----set).
-function reset_config()
-    local layout = config.get({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        opt = "layout"
-    })
-    local sel_layout = layout
-    if not config.get({ opt = "per-layout-config" }) then
-        sel_layout = nil
-    end
-
-    config.reset(CMD_OUTPUT, CMD_TAGS, sel_layout)
-    config.set({
-        output = CMD_OUTPUT,
-        tag = CMD_TAGS,
-        opt = "layout",
-        val = layout
-    })
-end
-
----Set the default value of an option for all outputs, tags and layouts.
----@param opt string Option name
----@param val any Option value
----@param min? number Minimum option value if a number
----@param max? number Maximum option value if a number
-function set_global(opt, val, min, max)
-    config.set({
-        opt = opt,
-        val = val,
-        min = min,
-        max = max
-    })
-end
-
-function inc_global(opt, val)
-    config.inc({ opt = opt, val = val })
-end
-
-function get_global(opt)
-    return config.get({ opt = opt })
 end
 
 return config
