@@ -17,7 +17,7 @@
 -- messages useful. To set the log level to include debug messages uncomment the
 -- following line:
 --
-require("backend.utils").set_log_level(DEBUG)
+--require("backend.utils").set_log_level(DEBUG)
 --
 -- NOTE: There aren't many debug messages included by default at the moment.
 
@@ -59,7 +59,14 @@ set_global("grid_ratio",  16/9, 1/3, 3/1)
 -----------------------
 --    Tag Options    --
 -----------------------
--- TODO: Add some tag specific option examples
+-- To default to a particular layout on a specific monitor you can use a block like the following:
+-- config.set({
+--     output = "HDMI-A-1",
+--     tag = "all",
+--     layout = "all",
+--     opt = "layout",
+--     val = "centred",
+-- })
 --
 -- The following code block sets up the option tables so that when you have any
 -- tag/tags AND the scratch tag selected, the options are the same as for the
@@ -69,39 +76,46 @@ set_global("grid_ratio",  16/9, 1/3, 3/1)
 -- options at a level higher than the layout options.
 local SCRATCH_TAG = 10
 
+local settings_meta = {}
 local output_meta = {}
-local tag_meta = {}
 
-output_meta.__index = function(tab, index)
-    local t = {
-        _output = index
-    }
-    setmetatable(t, tag_meta)
-    tab[index] = t
-    return t
+settings_meta.__index = function(outputs, name)
+    local output = { }
+    setmetatable(output, output_meta)
+    outputs[name] = output
+    return output
 end
-
-tag_meta.__index = function(tab, index)
-    local t = {
-        _tag = index
-    }
-
-    tab[index] = t
+output_meta.__index = function(tags, tag_sel)
+    local tag = { }
 
     -- Index can be "any"
-    if type(index) == "number" then
+    if type(tag_sel) == "number" then
+        -- If you wish to setup a tag specific option like in the README you
+        -- can do that here:
+        --
+        -- if tag_sel == 2 ^ 8 then
+        --     tag.all = { -- Important that this is set on the "all" key
+        --         layout = "monocle",
+        --     }
+        --     -- Alternatively set layout specific options with:
+        --     tag.monocle = {
+        --         gaps = 20,
+        --     }
+        -- end
+
         -- Make [tag + scratch tag] have the same option values as [tag]
-        tab[index + 2^SCRATCH_TAG] = t
-        utils.log(DEBUG, table.concat({
+        tags[tag_sel + 2^SCRATCH_TAG] = tag
+
+        utils.log(INFO, table.concat({
             "Linked tag ",
-            tonumber(index),
+            tonumber(tag_sel),
             " options to ",
-            2^SCRATCH_TAG + index,
+            2^SCRATCH_TAG + tag_sel,
             "."
         }, ""))
     end
 
-    return t
+    tags[tag_sel] = tag
+    return tags
 end
-
-setmetatable(config.settings, output_meta)
+setmetatable(config.settings, settings_meta)

@@ -38,12 +38,15 @@ set_global("main_ratio", 0.6, 0.1, 0.9)
 
 More advanced configuration is described below in [Advanced Configuration](#Advanced-Configuration).
 
+Defaults should be set for you for every option in
+`user_settings.lua`, but this may end up out of date and
+setting options that no longer exist or not setting
+options that do exist.
+
 There is currently no list of options or good way to get the options that are
 supported without manually checking what is used in the code. Most options are
 only used in `layouts.lua` but some options are used in `layout.lua` or
-`sublayouts.lua`. Defaults should be set for every option in
-`user_settings.lua`, but this may end up out of date and setting options that
-no longer exist or not setting options that do exist.
+`sublayouts.lua`.
 
 |Option|Type|Description|Where it is used|
 |---|---|---|---|
@@ -63,10 +66,11 @@ riverctl map normal Super Minus send-layout-cmd luatile 'inc("gaps", -1)'
 riverctl map normal Super Equal send-layout-cmd luatile 'inc("gaps", 1)'
 ```
 
-"Commands" that are sent to river-luatile are actually just Lua code. This means that to change
-settings you just need to run Lua code that changes the settings you want! There are some handy
-functions setup for you that make changing settings for the currently focussed tag nice and easy.
-These are the "set" and "inc" functions.
+"Commands" that are sent to river-luatile are actually just Lua code. This
+means that to change settings you just need to run Lua code that changes the
+settings you want! There are some handy functions setup for you that make
+changing settings for the currently focussed tag nice and easy. These are the
+"set" and "inc" functions.
 
 # Advanced Configuration
 
@@ -74,24 +78,63 @@ Options follow a rather complex hierarchy in flowtile which allows for a rather
 powerful amount of customization. You can set option values per-output, per-tag
 or per-layout. This means that it is possible to have one monitor always
 default to a vertical layout while any others default to a horizontal layout.
-Or it is possible to default to a "monocle" layout on tag 9 on every monitor or
-a combination of both! The exact hierarchy is shown in the table below:
 
 Output|Tag|Layout
 ---|---|---
-Current output | current tag | current layout
+Current output | current tag | current layout (If per-layout-config)
 Current output | current tag | every layout
-Current output | every tag   | current layout
 Current output | every tag   | every layout
-Every output   | current tag | current layout
-Every output   | current tag | every layout
-Every output   | every tag   | current layout
 Every output   | every tag   | every layout
 
 The first value that exists is the value that is used. N.B. This search path is
-currently hard coded in a really gross way so PRs welcome that improve it!
+currently hard coded in a pretty gross way, so PRs welcome that improve it!
 
-To achieve the functionality described in above your settings might look like:
+This hierarchy makes it easy to configure defaults options for specific tags
+on a specific monitors.
 
 ```lua
+-- Defaulting to a particular layout on just one monitor is easy!
+-- Set the 9th tag on HDMI-A-1 to monocle layout
+config.set({
+    output = "HDMI-A-1",
+    tag = 2 ^ 8,
+    layout = "all",
+    opt = "layout",
+    val = "monocle",
+})
+```
+
+It is also possible to configure it so that specific tags on ANY monitor
+default to certain values. This is much more complicated though and it is
+likely easier to just configure each monitor as needed. If you are using a
+laptop or regularly changing your setups then maybe the snippet below will help
+you achieve what you want.
+
+```lua
+local settings_meta = {}
+local output_meta = {}
+
+settings_meta.__index = function(outputs, name)
+    local output = { }
+    setmetatable(output, output_meta)
+    outputs[name] = output
+    return output
+end
+output_meta.__index = function(tags, tag_sel)
+    local tag = { }
+
+    if tag_sel == 2 ^ 8 then
+        tag.all = { -- Important that this is set on the "all" key
+            layout = "monocle",
+        }
+        -- Alternatively set layout specific options with:
+        tag.monocle = {
+            gaps = 20,
+        }
+    end
+
+    tags[tag_sel] = tag
+    return tags
+end
+setmetatable(config.settings, settings_meta)
 ```
