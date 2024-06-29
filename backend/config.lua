@@ -1,7 +1,9 @@
 local u = require("backend.utils")
----@alias Config {[string]: any}
 
-local config = {}
+---@class (exact) Config
+---@field [string] any
+
+local config = { }
 
 config.settings = {}
 config.restrict = {}
@@ -9,7 +11,6 @@ config.restrict = {}
 ---Limit an option to be of a specific type with optional upper and lower bounds if the type is a
 ---"number". If option already exists and has an associated type then check that the types are the
 ---same.
----
 ---@param opt string Option name
 ---@param val any Option value
 ---@param min? number Lower bound. Option is set to this value if val is too small.
@@ -19,7 +20,7 @@ config.restrict = {}
 config.lim = function(opt, val, min, max)
     if config.restrict[opt] then
         local restrict = config.restrict[opt]
-        if type(val) ~= restrict.type then
+        if val ~= nil and type(val) ~= restrict.type then
             print("Incompatible type for setting " .. opt .. "(" .. type(val) .. " ~= " .. restrict.type .. ")")
             return false, nil
         end
@@ -147,68 +148,31 @@ config.get = function(args)
         config.settings[sel_out][sel_tag][sel_lay] = {}
     end
 
+    -- Get specific value if set
     local value = config.settings[sel_out][sel_tag][sel_lay][opt]
     if value ~= nil then
         return value
     end
 
-    if sel_lay ~= "all" then
-        if config.settings[sel_out][sel_tag]["all"] ~= nil then
-            if config.settings[sel_out][sel_tag]["all"][opt] ~= nil then
-                return config.settings[sel_out][sel_tag]["all"][opt]
+    if config.settings[sel_out][sel_tag]["all"] ~= nil then
+        if config.settings[sel_out][sel_tag]["all"][opt] ~= nil then
+            return config.settings[sel_out][sel_tag]["all"][opt]
+        end
+    end
+
+    if config.settings[sel_out]["all"] ~= nil then
+        if config.settings[sel_out]["all"]["all"] ~= nil then
+            if config.settings[sel_out]["all"]["all"][opt] ~= nil then
+                return config.settings[sel_out]["all"]["all"][opt]
             end
         end
     end
 
-    if sel_tag ~= "all" then
-        if config.settings[sel_out]["all"] ~= nil then
-            if config.settings[sel_out]["all"][sel_lay] ~= nil then
-                if config.settings[sel_out]["all"][sel_lay][opt] ~= nil then
-                    return config.settings[sel_out]["all"][sel_lay][opt]
-                end
-            end
-
-            if sel_lay ~= "all" then
-                if config.settings[sel_out]["all"]["all"] ~= nil then
-                    if config.settings[sel_out]["all"]["all"][opt] ~= nil then
-                        return config.settings[sel_out]["all"]["all"][opt]
-                    end
-                end
-            end
-        end
-    end
-
-    if sel_out ~= "all" then
-        if config.settings["all"] ~= nil then
-            if config.settings["all"][sel_tag] ~= nil then
-                if config.settings["all"][sel_tag][sel_lay] ~= nil then
-                    if config.settings["all"][sel_tag][sel_lay][opt] ~= nil then
-                        return config.settings["all"][sel_tag][sel_lay][opt]
-                    end
-                end
-                if config.settings["all"][sel_tag]["all"] ~= nil then
-                    if config.settings["all"][sel_tag]["all"][opt] ~= nil then
-                        return config.settings["all"][sel_tag]["all"][opt]
-                    end
-                end
-            end
-
-
-            if sel_tag ~= "all" then
-                if config.settings["all"]["all"] ~= nil then
-                    if config.settings["all"]["all"][sel_lay] ~= nil then
-                        if config.settings["all"]["all"][sel_lay][opt] ~= nil then
-                            return config.settings["all"]["all"][sel_lay][opt]
-                        end
-                    end
-
-                    if sel_lay ~= "all" then
-                        if config.settings["all"]["all"]["all"] ~= nil then
-                            if config.settings["all"]["all"]["all"][opt] ~= nil then
-                                return config.settings["all"]["all"]["all"][opt]
-                            end
-                        end
-                    end
+    if config.settings["all"] ~= nil then
+        if config.settings["all"]["all"] ~= nil then
+            if config.settings["all"]["all"]["all"] ~= nil then
+                if config.settings["all"]["all"]["all"][opt] ~= nil then
+                    return config.settings["all"]["all"]["all"][opt]
                 end
             end
         end
