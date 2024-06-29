@@ -1,12 +1,14 @@
----@class Hierarchy
+---@class (exact) Hierarchy
 ---@field levels Level[]
+---@field cur_level integer
 local Hierarchy = {}
 
----@class Level
+---@class (exact) Level: table
 ---@field regions Region[]
 local Level = { }
 
----Return a new `Level` 
+---Return a new `Level`
+---
 ---@return self
 function Level:new()
     local new = {
@@ -16,7 +18,8 @@ function Level:new()
     return new
 end
 
----Add a `Region` to the level of the `Hierarchy`
+---Add a `Region` to the current level of the `Hierarchy`.
+---
 ---@param region Region
 function Level:add(region)
     table.insert(self.regions, region)
@@ -26,7 +29,7 @@ function Level:__index(k)
     return rawget(Level, k)
 end
 
----Return a new `Hierarchy` with an empty level
+---Return a new `Hierarchy` with no levels.
 ---@return self
 function Hierarchy:new()
     local new = {
@@ -38,8 +41,8 @@ function Hierarchy:new()
     return new
 end
 
----Add a new level to the `Hierarchy` if the next one does not exist
----and then select it.
+---Moves to the next level of the hierarchy. If the next level does not exist,
+---creates it.
 ---@return self
 function Hierarchy:next_level()
     self.cur_level = self.cur_level + 1
@@ -68,20 +71,6 @@ function Hierarchy:level_min(level)
 
     for region = 1, #self.levels[level].regions do
         count = count + self.levels[level].regions[region].min
-    end
-
-    return count
-end
-
----Get the maximum number of windows needed to satisfy all of the
----maximum requirements of the member `Regions` for the given level.
----@param level integer
----@return integer
-function Hierarchy:level_max(level)
-    local count = 0
-
-    for region = 1, #self.levels[level].regions do
-        count = count + (self.levels[level].regions[region].max or 0)
     end
 
     return count
