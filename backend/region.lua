@@ -1,51 +1,10 @@
-local Hier = require("backend.hierarchy")
-local copy = {
-    x = 0,
-    y = 0,
-    width = 0,
-    height = 0,
-}
-
----@return number, WinData[] # Returns remaining number of windows and window positioning data.
-local fill_from_list = function(list_of_children, remaining_wins, regions, config)
-    if regions == 0 then return regions, {} end
-    local win_positions = {}
-    local fill_with = math.floor(remaining_wins / regions)
-    local extra = math.fmod(remaining_wins, regions)
-
-    for _, child in pairs(list_of_children) do
-        local target = fill_with
-        if extra ~= 0 then
-            target = target + 1
-            extra = extra - 1
-        end
-
-        local positions = child:populate(target, config)
-
-        for p = 1, #positions do
-            win_positions[#win_positions+1] = positions[p]
-        end
-
-        regions = regions - 1
-
-        -- Handle case where number of generated positions doesn't match
-        -- with number requested
-        local diff = #positions - target
-        if diff ~= 0 then
-            remaining_wins = remaining_wins - #positions
-            fill_with = math.floor(remaining_wins / regions)
-            extra = math.fmod(remaining_wins, regions)
-        end
-
-    end
-
-    return regions, win_positions
-end
+local Hierarchy = require("backend.hierarchy")
 
 ---@class Region
 ---@field children? Region[]
 ---@field gaps number # Gap size between windows in pixels (default = `0`)
 ---@field height? number # Height of the region
+---@field hierarchy Hierarchy
 ---@field last boolean # Indicates if this region should fill after other regions have taken their windows (default = `false`)
 ---@field max? number # Maximum number of windows this region should take
 ---@field min? number # Minimum number of windows this region should take before taking any windows
@@ -55,21 +14,17 @@ end
 ---@field width? number # Width of the region
 ---@field x? number # X position of the region
 ---@field y? number # Y position of the region
----@field hierarchy Hierarchy
-local Region = {
-    name = "",
-    sublayout = "fill",
-    gaps = 0,
-}
+local Region = { }
 
 
 ---Create a new (empty!) `Region`. Not expected to be used in layouts.
+---@protected
 ---@param name string Region name - used for debugging
 ---@return Region
 function Region:new(name)
     local new = {
         name = name,
-        hierarchy = Hier:new(),
+        hierarchy = Hierarchy:new(),
     }
     setmetatable(new, self)
     return new
@@ -82,9 +37,10 @@ end
 function Region:from_args(name, args)
     local new = Region:new(name)
 
-    for k, v in pairs(copy) do
-        new[k] = args[k] or v
-    end
+    new.x = 0
+    new.y = 0
+    new.width = args.width
+    new.height = args.height
 
     return new
 end
@@ -116,6 +72,7 @@ function Region:from(name, x, y, width, height)
     self.children = self.children or {}
     table.insert(self.children, new)
 
+    -- Add to parent's hierarchy
     self.hierarchy:add(new)
 
     return new
@@ -147,7 +104,7 @@ end
 ---Set the sublayout of the `Region` and any relevant window limits.
 ---
 ---@param sublayout string # Sub-layout as found in the `sublayouts` module.
----@param limits? {[1]: number, [2]: number} # {min, max}
+---@param limits {[1]: number, [2]: number} # {min, max}
 ---@return Region # Returns itself.
 ---@see sublayouts.lua
 function Region:set_layout(sublayout, limits)
@@ -223,21 +180,30 @@ function Region:populate(requested_windows, config)
     return win_positions
 end
 
-function Region:__index(k)
-    local dont_inherit = { hierarchy = true, children = true, parent = true, last = true }
+---Only called when the index doesn't exist. Used to inherit the following
+---options from a parent:
+--- - gaps
+---
+---@private
+---@return any
+function Region:__index(index)
+    local inherit = {
+        gaps = true,
+    }
 
-    if dont_inherit[k] then
+    if Region[index] == nil and inherit[index] == nil then
         return nil
     end
 
     -- Otherwise return item inherited from base class (needed for funcs)
     if rawget(self, "parent") then
-        return rawget(self, "parent")[k]
+        return rawget(self, "parent")[index]
     else
-        return rawget(Region, k)
+        return Region[index]
     end
 end
 
+---Print useful keys from the region
 function Region:print(indent)
     indent = indent or 0
     local pre = string.rep(' ', indent)
