@@ -1,3 +1,5 @@
+local M = {}
+
 ---@class LogLevel
 ---@field val integer
 ---@field text string
@@ -12,9 +14,7 @@ WARN  = {val = 1, text = "\27[31mWARNING"}
 ERROR = {val = 2, text = "\27[33mERROR"}
 
 ---@type LogLevel
-LOG_LEVEL = ERROR
-
-local M = {}
+M.LOG_LEVEL = M.ERROR
 
 M.weakref = function(o)
     local weak = setmetatable({content=o}, {__mode="v"})
@@ -29,20 +29,26 @@ M.table.shallow_copy = function(t)
     end
     return t2
 end
-M.table.print = function(t, indent, nest)
+
+---@param t table
+---@param indent integer? How much indentation to add
+---@param nest boolean|integer? Whether to print nested tables or number of levels of nesting to print
+M.table.print = function(t, nest, indent)
     if not indent then indent = 0 end
     if nest == nil then nest = true end
     local pre = string.rep(' ', indent)
+
+    local next_nest = nest
+    if type(nest) == 'number' then
+        next_nest = nest - 1
+    end
+
     print('{')
     for k, v in pairs(t) do
         if type(v) == 'table' and nest and nest ~= 0 then
             io.write(pre .. '  ' .. tostring(k) .. " = " )
 
-            if type(nest) == 'number' then
-                nest = nest - 1
-            end
-
-            M.table.print(v, indent + 2, nest)
+            M.table.print(v, next_nest, indent + 2)
         else
             print(pre .. '  ' .. tostring(k) .. ' = ' .. tostring(v) .. ',')
         end
@@ -53,7 +59,7 @@ end
 ---@param level LogLevel
 ---@param message string
 M.log = function (level, message)
-    if level.val < LOG_LEVEL.val then return end
+    if level.val < M.LOG_LEVEL.val then return end
 
     local longest = math.max(#DEBUG.text, #INFO.text, #WARN.text, #ERROR.text)
     local pad = string.rep(" ", longest - #level.text)
@@ -61,7 +67,7 @@ M.log = function (level, message)
 end
 ---@param level LogLevel
 M.set_log_level = function (level)
-    LOG_LEVEL = level
+    M.LOG_LEVEL = level
 end
 
 return M
