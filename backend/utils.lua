@@ -31,10 +31,15 @@ M.table.shallow_copy = function(t)
 end
 
 local seen = {}
+local table_print
 ---@param t table
----@param indent integer? How much indentation to add
 ---@param nest boolean|integer? Whether to print nested tables or number of levels of nesting to print
-M.table.print = function(t, nest, indent)
+M.table.print = function(t, nest)
+    seen = {}
+    table_print(t, nest)
+end
+
+table_print = function(t, nest, indent)
     if not indent then indent = 0 end
     if nest == nil then nest = true end
     local pre = string.rep(' ', indent)
@@ -55,7 +60,7 @@ M.table.print = function(t, nest, indent)
                 print(tostring(v))
             else
                 seen[v] = true
-                M.table.print(v, next_nest, indent + 2)
+                table_print(v, next_nest, indent + 2)
             end
         else
             print(pre .. '  ' .. tostring(k) .. ' = ' .. tostring(v) .. ',')
