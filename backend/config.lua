@@ -8,9 +8,9 @@ local config = { }
 config.settings = {}
 config.restrict = {}
 
----Limit an option to be of a specific type with optional upper and lower bounds if the type is a
----"number". If option already exists and has an associated type then check that the types are the
----same.
+---Limit an option to be of a specific type. If the type is a number, it has
+---optional upper and lower bounds. If option already exists and has an
+---associated type then check that the types are the same.
 ---@param opt string Option name
 ---@param val any Option value
 ---@param min? number Lower bound. Option is set to this value if val is too small.
@@ -154,12 +154,14 @@ config.get = function(args)
         return value
     end
 
+    -- Else get the tag specific value
     if config.settings[sel_out][sel_tag]["all"] ~= nil then
         if config.settings[sel_out][sel_tag]["all"][opt] ~= nil then
             return config.settings[sel_out][sel_tag]["all"][opt]
         end
     end
 
+    -- Else get the output specific value
     if config.settings[sel_out]["all"] ~= nil then
         if config.settings[sel_out]["all"]["all"] ~= nil then
             if config.settings[sel_out]["all"]["all"][opt] ~= nil then
@@ -168,6 +170,7 @@ config.get = function(args)
         end
     end
 
+    -- Else get the global value
     if config.settings["all"] ~= nil then
         if config.settings["all"]["all"] ~= nil then
             if config.settings["all"]["all"]["all"] ~= nil then
