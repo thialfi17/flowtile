@@ -9,7 +9,8 @@ local_dir = config_dir .. "/river-luatile"
 package.path = local_dir .. "/?.lua;" .. package.path
 
 -- Global to make them accessible through the "run" function
-config = require("backend/config")
+config = require("backend.config")
+utils = require("backend.utils")
 layouts = require("layouts")
 
 ----------------------------------------
@@ -229,7 +230,6 @@ require("user_settings")
 --[[
 
 TODO: Documentation!
-TODO: Clean up unused functions/features
 TODO: Standardize function interfaces
 
 TODO: Cleanup hierarchy mess. Anything really complicated should be done on the user end not in the config end.

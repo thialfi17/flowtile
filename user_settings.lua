@@ -17,7 +17,7 @@
 -- messages useful. To set the log level to include debug messages uncomment the
 -- following line:
 --
--- require("backend.utils").set_log_level(DEBUG)
+require("backend.utils").set_log_level(DEBUG)
 --
 -- NOTE: There aren't many debug messages included by default at the moment.
 
@@ -59,5 +59,49 @@ set_global("grid_ratio",  16/9, 1/3, 3/1)
 -----------------------
 --    Tag Options    --
 -----------------------
--- TODO: Add configuration examples for tag specific options.
--- TODO: Configuration for scratch tag.
+-- TODO: Add some tag specific option examples
+--
+-- The following code block sets up the option tables so that when you have any
+-- tag/tags AND the scratch tag selected, the options are the same as for the
+-- tag/tags without the scratch tag selected.
+--
+-- This works with per-layout-config enabled and disabled since it links the
+-- options at a level higher than the layout options.
+local SCRATCH_TAG = 10
+
+local output_meta = {}
+local tag_meta = {}
+
+output_meta.__index = function(tab, index)
+    local t = {
+        _output = index
+    }
+    setmetatable(t, tag_meta)
+    tab[index] = t
+    return t
+end
+
+tag_meta.__index = function(tab, index)
+    local t = {
+        _tag = index
+    }
+
+    tab[index] = t
+
+    -- Index can be "any"
+    if type(index) == "number" then
+        -- Make [tag + scratch tag] have the same option values as [tag]
+        tab[index + 2^SCRATCH_TAG] = t
+        utils.log(DEBUG, table.concat({
+            "Linked tag ",
+            tonumber(index),
+            " options to ",
+            2^SCRATCH_TAG + index,
+            "."
+        }, ""))
+    end
+
+    return t
+end
+
+setmetatable(config.settings, output_meta)
