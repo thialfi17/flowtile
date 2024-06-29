@@ -144,6 +144,29 @@ function get(opt)
     })
 end
 
+---Reset the option for the currently selected output and tag (and layout if 'per-layout-config' is
+---set).
+---@param opt string Option name
+function reset(opt)
+    local layout = config.get({
+        output = CMD_OUTPUT,
+        tag = CMD_TAGS,
+        opt = "layout"
+    })
+    local sel_layout = layout
+    if not config.get({ opt = "per-layout-config" }) then
+        sel_layout = nil
+    end
+
+    config.set({
+        output = CMD_OUTPUT,
+        tag = CMD_TAGS,
+        layout = sel_layout,
+        opt = opt,
+        val = nil
+    })
+end
+
 ---Reset the options for the currently selected output and tag (and layout if 'per-layout-config' is
 ---set). Doesn't change the current layout just resets the other options.
 function reset_config()
