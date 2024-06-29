@@ -14,7 +14,7 @@ WARN  = {val = 1, text = "\27[31mWARNING"}
 ERROR = {val = 2, text = "\27[33mERROR"}
 
 ---@type LogLevel
-M.LOG_LEVEL = M.ERROR
+M.LOG_LEVEL = ERROR
 
 M.weakref = function(o)
     local weak = setmetatable({content=o}, {__mode="v"})
