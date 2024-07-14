@@ -34,7 +34,7 @@ set_global("secondary_sublayout",   "grid")
 set_global("tertiary_sublayout",    "stack")
 
 set_global("gaps", 4,   0,   nil) -- To disable set to 0
-set_global("smart_gaps",   false)
+set_global("smart_gaps",    true)
 
 set_global("layout", "main_with_stack")
 

@@ -41,6 +41,7 @@ function Region:from_args(name, args)
     new.y = 0
     new.width = args.width
     new.height = args.height
+    new.gaps = 0
 
     return new
 end
