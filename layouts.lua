@@ -43,7 +43,9 @@ local layouts = {
         r.y = r.y + config.offset_top
         r.x = r.x + config.offset_left
 
-        r:set_gaps(config.gaps)
+        if not (config.smart_gaps and args.count < 2) then
+            r:set_gaps(config.gaps)
+        end
 
         return r:populate(args.count, config)
     end,
@@ -135,7 +137,7 @@ local layouts = {
 
         -- There is a secondary region
         if secondary_count ~= 0 then
-            -- So use the secondary layout if there aren't enough windows to
+            -- Default to secondary layout if there aren't enough windows to
             -- fill the tertiary region.
             right:set_layout(secondary_sublayout, {1, nil})
 
